@@ -1,0 +1,29 @@
+# Binaries
+daemon/bin/
+*.exe
+
+# Go
+vendor/
+
+# iOS
+ios/build/
+ios/DerivedData/
+ios/*/Frameworks/*.xcframework/
+*.xcuserdata/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Upstream reference (not part of build)
+_upstream/
+
+# Environment
+.env
+.env.local
