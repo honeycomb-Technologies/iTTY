@@ -1,0 +1,35 @@
+name: Daemon Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build release artifacts
+        working-directory: daemon
+        run: make cross
+
+      - name: Publish GitHub release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            daemon/bin/itty-linux-amd64
+            daemon/bin/itty-linux-arm64
+            daemon/bin/itty-darwin-amd64
+            daemon/bin/itty-darwin-arm64
+            install/install.sh
+            install/itty-daemon.service
+            install/com.honeycomb.itty.plist

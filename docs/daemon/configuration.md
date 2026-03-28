@@ -33,4 +33,5 @@ apns_team_id = ""
 
 - `PUT /config/auto` updates both the shell rc file and `config.toml`
 - APNs fields are persisted but not used yet
-- `tailscale_serve` is persisted but not acted on yet
+- `tailscale_serve` makes daemon startup attempt `tailscale serve --bg <listen-port>` when the Tailscale CLI is installed and connected
+- Tailscale setup failures are logged but do not stop the daemon because tailnet exposure is optional

@@ -1,12 +1,21 @@
-.PHONY: build-daemon test-daemon lint-daemon run-daemon scaffold-ios check-ios-scaffold clean help
+.PHONY: build build-daemon test test-daemon lint lint-daemon run-daemon scaffold-ios check-ios-scaffold clean help
+
+## build: Build the iTTY desktop daemon
+build: build-daemon
 
 ## build-daemon: Build the iTTY desktop daemon
 build-daemon:
 	$(MAKE) -C daemon build
 
+## test: Run daemon tests
+test: test-daemon
+
 ## test-daemon: Run daemon tests
 test-daemon:
 	$(MAKE) -C daemon test
+
+## lint: Lint daemon code
+lint: lint-daemon
 
 ## lint-daemon: Lint daemon code
 lint-daemon:

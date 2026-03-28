@@ -22,7 +22,7 @@ Your desktop terminal doesn't matter — Ghostty, Alacritty, Kitty, the default 
 
 ### Desktop
 ```bash
-curl -fsSL https://itty.app/install | bash
+curl -fsSL https://github.com/honeycomb-Technologies/iTTY/releases/latest/download/install.sh | bash
 ```
 
 ### iPhone

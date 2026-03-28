@@ -29,6 +29,7 @@ import (
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/api"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/config"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/shell"
+	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tailscale"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tmux"
 )
 
@@ -86,6 +87,18 @@ func runDaemon() error {
 	api.Version = version
 	srv := api.NewServer(tmuxClient, cfg)
 
+	if cfg.TailscaleServe {
+		result, err := maybeConfigureTailscaleServe(context.Background(), newTailscaleClient(), cfg.ListenAddr)
+		switch {
+		case err != nil:
+			log.Printf("tailscale serve setup skipped: %v", err)
+		case result.Enabled && result.Hostname != "":
+			log.Printf("tailscale serve enabled at https://%s", result.Hostname)
+		case result.Enabled:
+			log.Printf("tailscale serve enabled for %s", cfg.ListenAddr)
+		}
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -116,6 +129,7 @@ func runStatus() error {
 
 	tmuxClient := tmux.NewClient()
 	tmuxClient.TmuxPath = cfg.TmuxPath
+	tailscaleClient := tailscale.NewClient()
 	ctx := context.Background()
 
 	configPath, err := config.ConfigPath()
@@ -133,6 +147,17 @@ func runStatus() error {
 	}
 	fmt.Printf("tmux running:    %v\n", tmuxClient.IsRunning(ctx))
 	fmt.Printf("auto-wrap config:%v\n", cfg.AutoWrap)
+	fmt.Printf("tailscale serve: %v\n", cfg.TailscaleServe)
+	fmt.Printf("tailscale cli:   %v\n", tailscaleClient.IsInstalled())
+	if tailscaleClient.IsInstalled() {
+		running := tailscaleClient.IsRunning(ctx)
+		fmt.Printf("tailscale live:  %v\n", running)
+		if running {
+			if host, err := tailscaleClient.Hostname(ctx); err == nil {
+				fmt.Printf("tailscale host:  %s\n", host)
+			}
+		}
+	}
 
 	shellInfo, err := shell.Detect()
 	if err == nil {

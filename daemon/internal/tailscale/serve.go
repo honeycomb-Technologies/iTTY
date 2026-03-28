@@ -5,6 +5,8 @@ package tailscale
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -41,8 +43,15 @@ func (c *Client) IsRunning(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	// If we get JSON output, tailscale is running.
-	return strings.Contains(out, `"BackendState"`)
+
+	var status struct {
+		BackendState string `json:"BackendState"`
+	}
+	if err := json.Unmarshal([]byte(out), &status); err != nil {
+		return false
+	}
+
+	return status.BackendState == "Running"
 }
 
 // Hostname returns the machine's Tailscale hostname.
@@ -51,19 +60,19 @@ func (c *Client) Hostname(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("tailscale status: %w", err)
 	}
-	// Parse hostname from JSON — simplified extraction
-	for _, line := range strings.Split(out, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.Contains(line, `"DNSName"`) {
-			// Extract value: "DNSName": "machine.tailnet.ts.net.",
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				name := strings.Trim(strings.TrimSpace(parts[1]), `",. `)
-				return name, nil
-			}
-		}
+	var status struct {
+		DNSName string `json:"DNSName"`
 	}
-	return "", fmt.Errorf("could not determine tailscale hostname")
+	if err := json.Unmarshal([]byte(out), &status); err != nil {
+		return "", fmt.Errorf("decoding tailscale status: %w", err)
+	}
+
+	name := strings.TrimSuffix(strings.TrimSpace(status.DNSName), ".")
+	if name == "" {
+		return "", fmt.Errorf("could not determine tailscale hostname")
+	}
+
+	return name, nil
 }
 
 // ServePort configures `tailscale serve` to expose a local port on the tailnet.
@@ -99,6 +108,18 @@ func (c *Client) run(ctx context.Context, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, c.BinPath, args...)
 	out, err := cmd.Output()
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return "", fmt.Errorf("tailscale %s: %w", strings.Join(args, " "), ctx.Err())
+		}
+
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			stderr := strings.TrimSpace(string(exitErr.Stderr))
+			if stderr != "" {
+				return "", fmt.Errorf("tailscale %s: %s", strings.Join(args, " "), stderr)
+			}
+		}
+
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil

@@ -4,10 +4,18 @@ on:
   push:
     paths:
       - 'daemon/**'
+      - 'install/**'
+      - 'docs/daemon/**'
+      - 'docs/features/tailscale.md'
       - '.github/workflows/daemon-build.yml'
+      - '.github/workflows/daemon-release.yml'
   pull_request:
     paths:
       - 'daemon/**'
+      - 'install/**'
+      - 'docs/daemon/**'
+      - 'docs/features/tailscale.md'
+      - '.github/workflows/daemon-release.yml'
 
 jobs:
   build:
@@ -30,6 +38,12 @@ jobs:
       - name: Lint
         working-directory: daemon
         run: make lint
+
+      - name: Check installer syntax
+        run: bash -n install/install.sh
+
+      - name: Check launchd plist template XML
+        run: python3 -c 'import xml.etree.ElementTree as ET; ET.parse("install/com.honeycomb.itty.plist")'
 
   cross-compile:
     runs-on: ubuntu-latest

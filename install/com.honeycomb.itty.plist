@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/itty</string>
+        <string>__ITTY_BIN__</string>
         <string>start</string>
     </array>
 
@@ -21,15 +21,15 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/tmp/itty-daemon.log</string>
+    <string>__ITTY_LOG__</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/itty-daemon.log</string>
+    <string>__ITTY_LOG__</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <string>__ITTY_PATH__</string>
     </dict>
 </dict>
 </plist>

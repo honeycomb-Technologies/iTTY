@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # iTTY Daemon Installer
-# Usage: curl -fsSL https://itty.app/install | bash
+# Usage: curl -fsSL https://github.com/honeycomb-Technologies/iTTY/releases/latest/download/install.sh | bash
 #
 # This script:
 # 1. Detects the OS and architecture
@@ -9,13 +9,21 @@
 # 4. Configures the shell for auto-tmux wrapping
 # 5. Installs a system service (systemd or launchd)
 # 6. Starts the daemon
-# 7. Configures Tailscale Serve (if available)
+# 7. Optionally configures Tailscale Serve
 
 set -euo pipefail
 
 REPO="honeycomb-Technologies/iTTY"
 INSTALL_DIR="$HOME/.local/bin"
 VERSION="${ITTY_VERSION:-latest}"
+SCRIPT_DIR=""
+OS=""
+ARCH=""
+BINARY_NAME=""
+
+if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 
 # Colors (if terminal supports them)
 if [ -t 1 ]; then
@@ -32,6 +40,78 @@ info()  { echo -e "${BLUE}[iTTY]${NC} $*"; }
 ok()    { echo -e "${GREEN}[iTTY]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[iTTY]${NC} $*"; }
 fail()  { echo -e "${RED}[iTTY]${NC} $*" >&2; exit 1; }
+
+release_asset_url() {
+    local asset="$1"
+
+    if [ "$VERSION" = "latest" ]; then
+        printf 'https://github.com/%s/releases/latest/download/%s\n' "$REPO" "$asset"
+        return
+    fi
+
+    printf 'https://github.com/%s/releases/download/%s/%s\n' "$REPO" "$VERSION" "$asset"
+}
+
+download_to() {
+    local url="$1"
+    local dest="$2"
+
+    if command -v curl &>/dev/null; then
+        curl --fail --silent --show-error --location --retry 3 --connect-timeout 10 "$url" -o "$dest"
+    elif command -v wget &>/dev/null; then
+        wget --quiet "$url" -O "$dest"
+    else
+        fail "neither curl nor wget found"
+    fi
+}
+
+find_local_binary() {
+    local candidate
+
+    for candidate in \
+        "${SCRIPT_DIR}/../daemon/bin/${BINARY_NAME}" \
+        "${SCRIPT_DIR}/../daemon/bin/itty"; do
+        if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+find_local_install_asset() {
+    local asset="$1"
+    local candidate
+
+    for candidate in \
+        "${SCRIPT_DIR}/${asset}" \
+        "${SCRIPT_DIR}/install/${asset}"; do
+        if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+copy_or_download_install_asset() {
+    local asset="$1"
+    local dest="$2"
+    local local_asset
+
+    if local_asset="$(find_local_install_asset "$asset")"; then
+        cp "$local_asset" "$dest"
+        return
+    fi
+
+    download_to "$(release_asset_url "$asset")" "$dest"
+}
+
+escape_sed_replacement() {
+    printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
+}
 
 # --- Detect OS and architecture ---
 
@@ -51,6 +131,7 @@ detect_platform() {
         *)      fail "unsupported OS: $OS" ;;
     esac
 
+    BINARY_NAME="itty-${OS}-${ARCH}"
     info "detected platform: ${OS}/${ARCH}"
 }
 
@@ -95,22 +176,16 @@ install_tmux() {
 # --- Download daemon binary ---
 
 download_daemon() {
+    local local_binary
+
     mkdir -p "$INSTALL_DIR"
 
-    BINARY_NAME="itty-${OS}-${ARCH}"
-    if [ "$VERSION" = "latest" ]; then
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/${BINARY_NAME}"
+    if local_binary="$(find_local_binary)"; then
+        info "installing iTTY daemon from local build: ${local_binary}"
+        cp "$local_binary" "${INSTALL_DIR}/itty"
     else
-        DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY_NAME}"
-    fi
-
-    info "downloading iTTY daemon..."
-    if command -v curl &>/dev/null; then
-        curl -fsSL "$DOWNLOAD_URL" -o "${INSTALL_DIR}/itty" || fail "download failed from ${DOWNLOAD_URL}"
-    elif command -v wget &>/dev/null; then
-        wget -q "$DOWNLOAD_URL" -O "${INSTALL_DIR}/itty" || fail "download failed from ${DOWNLOAD_URL}"
-    else
-        fail "neither curl nor wget found"
+        info "downloading iTTY daemon..."
+        download_to "$(release_asset_url "$BINARY_NAME")" "${INSTALL_DIR}/itty" || fail "download failed for $(release_asset_url "$BINARY_NAME")"
     fi
 
     chmod +x "${INSTALL_DIR}/itty"
@@ -139,65 +214,45 @@ install_service() {
 }
 
 install_systemd_service() {
-    SERVICE_DIR="$HOME/.config/systemd/user"
-    mkdir -p "$SERVICE_DIR"
+    local service_dir="$HOME/.config/systemd/user"
+    local service_path="${service_dir}/itty-daemon.service"
+    local tmp_asset
 
-    cat > "${SERVICE_DIR}/itty-daemon.service" << 'UNIT'
-[Unit]
-Description=iTTY Daemon
-After=network-online.target
-Wants=network-online.target
+    if ! command -v systemctl &>/dev/null; then
+        warn "systemctl not found — skipping systemd service install"
+        return
+    fi
 
-[Service]
-Type=simple
-ExecStart=%h/.local/bin/itty start
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-UNIT
+    mkdir -p "$service_dir"
+    tmp_asset="$(mktemp)"
+    copy_or_download_install_asset "itty-daemon.service" "$tmp_asset"
+    install -m 0644 "$tmp_asset" "$service_path"
+    rm -f "$tmp_asset"
 
     systemctl --user daemon-reload
-    systemctl --user enable itty-daemon.service
-    systemctl --user start itty-daemon.service
+    systemctl --user enable --now itty-daemon.service
     ok "systemd user service installed and started"
 }
 
 install_launchd_service() {
-    PLIST_DIR="$HOME/Library/LaunchAgents"
-    mkdir -p "$PLIST_DIR"
+    local plist_dir="$HOME/Library/LaunchAgents"
+    local log_dir="$HOME/Library/Logs/iTTY"
+    local plist_path="${plist_dir}/com.honeycomb.itty.plist"
+    local tmp_asset
 
-    ITTY_PATH="${INSTALL_DIR}/itty"
-    cat > "${PLIST_DIR}/com.honeycomb.itty.plist" << PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.honeycomb.itty</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>${ITTY_PATH}</string>
-        <string>start</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <dict>
-        <key>SuccessfulExit</key>
-        <false/>
-    </dict>
-    <key>StandardOutPath</key>
-    <string>/tmp/itty-daemon.log</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/itty-daemon.log</string>
-</dict>
-</plist>
-PLIST
+    mkdir -p "$plist_dir" "$log_dir"
+    tmp_asset="$(mktemp)"
+    copy_or_download_install_asset "com.honeycomb.itty.plist" "$tmp_asset"
+    sed \
+        -e "s|__ITTY_BIN__|$(escape_sed_replacement "${INSTALL_DIR}/itty")|g" \
+        -e "s|__ITTY_LOG__|$(escape_sed_replacement "${log_dir}/daemon.log")|g" \
+        -e "s|__ITTY_PATH__|$(escape_sed_replacement "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin")|g" \
+        "$tmp_asset" > "$plist_path"
+    rm -f "$tmp_asset"
 
-    launchctl load "${PLIST_DIR}/com.honeycomb.itty.plist" 2>/dev/null || true
-    ok "launchd service installed and started"
+    launchctl unload "$plist_path" 2>/dev/null || true
+    launchctl load "$plist_path"
+    ok "launchd agent installed and started"
 }
 
 # --- Configure Tailscale Serve ---
@@ -209,7 +264,7 @@ configure_tailscale() {
         return
     fi
 
-    if ! tailscale status &>/dev/null; then
+    if ! tailscale status --json &>/dev/null; then
         warn "tailscale not connected — skipping Tailscale Serve setup"
         warn "connect with: tailscale up"
         return
@@ -217,8 +272,7 @@ configure_tailscale() {
 
     info "configuring Tailscale Serve..."
     if tailscale serve --bg 8080 &>/dev/null; then
-        HOSTNAME=$(tailscale status --self --json 2>/dev/null | grep -o '"DNSName":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/\.$//')
-        ok "Tailscale Serve configured — daemon accessible at https://${HOSTNAME:-your-machine}:8080"
+        ok "Tailscale Serve configured for local port 8080"
     else
         warn "tailscale serve failed — you can configure it later with: tailscale serve --bg 8080"
     fi
@@ -250,10 +304,12 @@ main() {
     ok "  3. Open iTTY — your terminals are waiting"
     ok ""
     ok "Commands:"
-    ok "  itty status     Show daemon status"
-    ok "  itty sessions   List tmux sessions"
-    ok "  itty auto off   Disable auto-tmux wrapping"
+    ok "  ${INSTALL_DIR}/itty status"
+    ok "  ${INSTALL_DIR}/itty sessions"
+    ok "  ${INSTALL_DIR}/itty auto off"
     ok "═══════════════════════════════════════"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

@@ -1,5 +1,5 @@
 [Unit]
-Description=iTTY Daemon — Desktop companion for the iTTY iOS terminal app
+Description=iTTY Daemon
 Documentation=https://github.com/honeycomb-Technologies/iTTY
 After=network-online.target
 Wants=network-online.target
@@ -9,15 +9,13 @@ Type=simple
 ExecStart=%h/.local/bin/itty start
 Restart=on-failure
 RestartSec=5
+Environment=HOME=%h
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 
-# Security hardening
+# The daemon writes ~/.config/itty/config.toml and may create or update shell rc
+# files via PUT /config/auto, so HOME cannot be mounted read-only here.
 NoNewPrivileges=yes
 ProtectSystem=strict
-ProtectHome=read-only
-ReadWritePaths=%h/.config/itty
-
-# Environment
-Environment=HOME=%h
 
 [Install]
 WantedBy=default.target
