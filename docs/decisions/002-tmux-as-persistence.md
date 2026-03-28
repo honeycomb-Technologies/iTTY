@@ -25,5 +25,5 @@ Users should never type `tmux` or know it exists. The daemon:
 ## Consequences
 - Desktop requires tmux installed (daemon handles this)
 - Auto-wrap modifies user's .bashrc/.zshrc (with clear markers, idempotent, removable)
-- Existing processes not in tmux require best-effort migration (reptyr)
+- Processes running before daemon install are not auto-wrapped — they finish naturally, and all new terminals after install are tmux sessions
 - Any desktop terminal works — tmux is terminal-agnostic
