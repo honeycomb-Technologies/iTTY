@@ -1,14 +1,14 @@
 # iTTY Daemon API Reference
 
-Base URL: `http://localhost:8080` (or `https://<machine>.tailnet:8080` via Tailscale Serve)
+Base URL: `http://localhost:8080`
 
-## Endpoints
+## Implemented Endpoints
 
 ### GET /health
 
-Returns daemon status and environment info.
+Returns daemon status and tmux availability.
 
-**Response:**
+**Response**
 ```json
 {
   "status": "ok",
@@ -21,85 +21,19 @@ Returns daemon status and environment info.
 
 ### GET /sessions
 
-Lists all tmux sessions with metadata.
-
-**Response:**
-```json
-[
-  {
-    "name": "itty-pts-1",
-    "windows": 2,
-    "created": "2026-03-28T10:30:00-07:00",
-    "attached": true,
-    "lastPaneCommand": "nvim",
-    "lastPanePath": "/home/user/project"
-  },
-  {
-    "name": "itty-pts-3",
-    "windows": 1,
-    "created": "2026-03-28T11:15:00-07:00",
-    "attached": false,
-    "lastPaneCommand": "claude",
-    "lastPanePath": "/home/user/work"
-  }
-]
-```
+Lists all tmux sessions with summary metadata.
 
 ### GET /sessions/{name}
 
-Returns detailed information about a specific session including windows and panes.
+Returns a single tmux session with its windows and panes.
 
-**Response:**
-```json
-{
-  "name": "itty-pts-1",
-  "windows": 2,
-  "created": "2026-03-28T10:30:00-07:00",
-  "attached": true,
-  "lastPaneCommand": "nvim",
-  "lastPanePath": "/home/user/project",
-  "windowList": [
-    {
-      "index": 1,
-      "name": "editor",
-      "active": true,
-      "panes": [
-        {
-          "id": "%0",
-          "index": 1,
-          "active": true,
-          "command": "nvim",
-          "path": "/home/user/project",
-          "width": 120,
-          "height": 40
-        }
-      ]
-    },
-    {
-      "index": 2,
-      "name": "shell",
-      "active": false,
-      "panes": [
-        {
-          "id": "%1",
-          "index": 1,
-          "active": true,
-          "command": "bash",
-          "path": "/home/user/project",
-          "width": 120,
-          "height": 40
-        }
-      ]
-    }
-  ]
-}
-```
+Returns `404` when the session does not exist.
 
 ### GET /sessions/{name}/content
 
-Captures the visible content of the active pane in a session.
+Captures the visible content of the session's active pane.
 
-**Response:**
+**Response**
 ```json
 {
   "content": "~ ❯ ls\nREADME.md  src/  tests/\n~ ❯ "
@@ -108,24 +42,55 @@ Captures the visible content of the active pane in a session.
 
 ### GET /config
 
-Returns current daemon configuration.
+Returns the daemon configuration currently loaded in memory.
+
+**Response**
+```json
+{
+  "listenAddr": ":8080",
+  "tmuxPath": "tmux",
+  "autoWrap": true,
+  "tailscaleServe": true,
+  "apnsKeyPath": "",
+  "apnsKeyID": "",
+  "apnsTeamID": ""
+}
+```
 
 ### PUT /config/auto
 
-Toggle auto-tmux shell wrapping.
+Enables or disables tmux shell auto-wrap and persists the updated config.
 
-**Request:**
+**Request**
 ```json
 {
   "enabled": true
 }
 ```
 
+**Response**
+```json
+{
+  "listenAddr": ":8080",
+  "tmuxPath": "tmux",
+  "autoWrap": true,
+  "tailscaleServe": true,
+  "apnsKeyPath": "",
+  "apnsKeyID": "",
+  "apnsTeamID": ""
+}
+```
+
+Possible errors:
+
+- `400` for invalid JSON or missing `enabled`
+- `500` for shell detection, shell mutation, or config save failures
+
 ### GET /windows
 
-Lists open terminal windows on the desktop (platform-specific).
+Lists open terminal windows detected on the local desktop.
 
-**Response:**
+**Response**
 ```json
 [
   {
@@ -137,10 +102,10 @@ Lists open terminal windows on the desktop (platform-specific).
 ]
 ```
 
-### WS /stream
+## Not In Phase 1
 
-WebSocket endpoint for real-time session updates. *(Planned)*
+The following are not implemented in the Phase 1 daemon:
 
-### POST /notify/register
-
-Register an APNs device token for push notifications. *(Planned)*
+- WebSocket streaming
+- APNs device registration
+- Tailscale control-plane integration

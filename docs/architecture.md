@@ -1,5 +1,7 @@
 # iTTY Architecture
 
+This document describes the target system shape. For the current implementation boundary, use `docs/roadmap.md`.
+
 ## System Overview
 
 iTTY consists of two components that communicate over a Tailscale private network:
@@ -15,8 +17,8 @@ iTTY consists of two components that communicate over a Tailscale private networ
 │        │  • Auto-installs tmux     │    │
 │        │  • Auto-configures shell  │    │
 │        │  • Reports tmux sessions  │    │
-│        │  • WebSocket streaming    │    │
-│        │  • APNs push notifications│    │
+│        │  • REST API today         │    │
+│        │  • WebSocket/APNs later   │    │
 │        └───────────┬───────────────┘    │
 │              Tailscale Serve :8080      │
 └────────────────────┬────────────────────┘
@@ -25,12 +27,11 @@ iTTY consists of two components that communicate over a Tailscale private networ
 │   iPhone                                │
 │                                         │
 │  iTTY App (Geistty fork + libghostty)   │
-│  • Discovers daemon via Tailscale       │
-│  • Session browser: all open terminals  │
-│  • Tap to attach (SSH + tmux attach)    │
-│  • Metal GPU-rendered terminal (120fps) │
-│  • Auto-reconnect on foreground         │
-│  • Multi-tab concurrent sessions        │
+│  • Phase 2 scaffold in-repo             │
+│  • Daemon browser and attach planned    │
+│  • Metal terminal via Geistty foundation│
+│  • Reconnect refinement planned         │
+│  • Multi-tab polish later               │
 └─────────────────────────────────────────┘
 ```
 

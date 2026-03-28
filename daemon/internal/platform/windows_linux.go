@@ -33,15 +33,15 @@ func (d *LinuxWindowDiscoverer) ListWindows() ([]TerminalWindow, error) {
 
 	// Known terminal emulator WM classes/names
 	terminalApps := map[string]bool{
-		"ghostty":     true,
-		"alacritty":   true,
-		"kitty":       true,
-		"wezterm":     true,
-		"foot":        true,
+		"ghostty":        true,
+		"alacritty":      true,
+		"kitty":          true,
+		"wezterm":        true,
+		"foot":           true,
 		"gnome-terminal": true,
-		"konsole":     true,
-		"xterm":       true,
-		"tilix":       true,
+		"konsole":        true,
+		"xterm":          true,
+		"tilix":          true,
 	}
 
 	var windows []TerminalWindow

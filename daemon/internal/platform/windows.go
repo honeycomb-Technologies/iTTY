@@ -7,7 +7,7 @@ package platform
 type TerminalWindow struct {
 	ID      string `json:"id"`
 	Title   string `json:"title"`
-	App     string `json:"app"`     // e.g., "Ghostty", "Alacritty", "Terminal"
+	App     string `json:"app"` // e.g., "Ghostty", "Alacritty", "Terminal"
 	Focused bool   `json:"focused"`
 }
 

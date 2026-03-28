@@ -50,13 +50,13 @@ Manages SSH connections, data routing, and reconnection.
 - 3-retry reconnection with stored credentials
 
 **Issues**:
-- **Issue #3 root cause (background reconnection)**: The app terminates instead of gracefully handling the transition. The background task protection exists but the reconnection flow doesn't properly re-establish the SSH → tmux pipeline on foreground. Fix: implement `scenePhase`-based reconnection in the app layer, not just in SSHSession.
-- **Issue #4 root cause (session name tracking)**: Session name discovery uses a sentinel string injection pattern that can match the wrong session. Fix: use random UUID per connection as the sentinel.
+- **Issue #3 root cause (background reconnection)**: Upstream already has app-lifecycle handling across `ContentView`, `TerminalContainerView`, and `SSHSession`, but the ownership is spread across layers and is hard to reason about. iTTY should extract a dedicated connection/reconnect coordinator without regressing the existing synchronous ordering.
+- **Issue #4 migration risk (session name tracking)**: Upstream already uses a UUID-derived sentinel in `TmuxSessionNameResolver` and has regression tests for shell-echo false positives. The real risk in iTTY is losing that behavior during the move, not inventing it from scratch.
 - Unbounded write queue buffer — no backpressure, potential OOM under sustained load
 - No exponential backoff on reconnection (fixed 5s delay)
 - SSH write failures don't stop the rendering pipeline
 
-**Preserve for iTTY**: The SSH handshake, auth, and data routing. Refactor reconnection to use our AutoReconnectService.
+**Preserve for iTTY**: The SSH handshake, auth, data routing, and current reconnect sequencing. If refactored, extract it into an explicit connection manager instead of rewriting behavior blind.
 
 ### 3. TmuxSessionManager.swift (2,062 lines) — State Hub
 
@@ -120,20 +120,22 @@ SwiftUI ↔ UIKit bridge hosting the terminal.
 ## Issue Root Causes
 
 ### Issue #3: Background Reconnection
-**Symptom**: App terminates instead of reconnecting after background suspension.
-**Root cause**: SSHSession has reconnection logic but it's tied to the SSH layer, not the app lifecycle. When iOS suspends the app and kills the SSH connection, the reconnection fires inside SSHSession but fails because the app state isn't properly restored. The fix is app-layer reconnection driven by `scenePhase` changes, not SSH-layer retries.
-**Fix**: Implement `AutoReconnectService` that observes `scenePhase == .active`, re-establishes SSH, and re-attaches tmux. The SSHSession reconnection becomes a fallback for transient network drops.
+**Symptom**: Background/foreground reconnect logic is hard to audit and easy to break during refactoring.
+**Root cause**: Upstream already uses app-layer lifecycle hooks (`scenePhase` gating in `ContentView`, app-active notifications in `TerminalContainerView`, and reconnect methods in `SSHSession`), but the behavior is spread across multiple layers instead of being owned by one coordinator.
+**Fix**: Extract a dedicated `ConnectionManager` or `AutoReconnectService` that preserves the current sequencing while making lifecycle ownership explicit. The goal is consolidation, not replacing upstream behavior with a brand-new reconnect model.
 
 ### Issue #4: tmux Session Name Tracking
 **Symptom**: App attaches to wrong tmux session.
-**Root cause**: Session name discovery injects a sentinel string and looks for it in tmux output. The sentinel can match incorrectly if the session name contains similar patterns.
-**Fix**: Use a random UUID as the sentinel per connection attempt. This makes false matches statistically impossible.
+**Root cause**: The unsafe version of this logic was a fixed-string sentinel. Upstream has already corrected it by using a UUID-derived sentinel per resolution attempt and by testing shell-echo edge cases.
+**Fix**: Preserve the current `TmuxSessionNameResolver` UUID-sentinel behavior and its tests during migration. Do not reintroduce fixed-string or substring-based matching.
 
 ---
 
 ## Refactoring Targets
 
 ### What Moves Where (Geistty → iTTY module mapping)
+
+Paths below are relative to `ios/iTTY/Sources/`.
 
 ```
 GEISTTY FILE                        → iTTY LOCATION                    ACTION
@@ -168,17 +170,17 @@ SSH/TmuxSessionManager.swift         → Core/Tmux/TmuxSessionManager.swift Refa
 SSH/TmuxLayout.swift                 → Core/Tmux/TmuxLayout.swift       Keep
 SSH/TmuxSplitTree.swift              → Core/Tmux/TmuxSplitTree.swift    Keep
 SSH/TmuxModels.swift                 → Core/Tmux/TmuxModels.swift       Keep
-SSH/TmuxSessionNameResolver.swift    → Core/Tmux/TmuxSessionNameResolver.swift Fix (UUID sentinel)
+SSH/TmuxSessionNameResolver.swift    → Core/Tmux/TmuxSessionNameResolver.swift Keep (preserve UUID sentinel)
 SSH/TmuxWireDiagnostics.swift        → Core/Tmux/TmuxWireDiagnostics.swift Keep
 
 Terminal/TerminalContainerView.swift  → Features/Terminal/TerminalContainerView.swift Refactor
-Terminal/RawTerminalUIVC+Keyboard.swift → Features/Terminal/Keyboard.swift Rename
-Terminal/RawTerminalUIVC+MenuBar.swift  → Features/Terminal/MenuBar.swift  Rename
-Terminal/RawTerminalUIVC+Search.swift   → Features/Terminal/Search.swift   Rename
-Terminal/RawTerminalUIVC+Shortcuts.swift → Features/Terminal/Shortcuts.swift Rename
-Terminal/RawTerminalUIVC+Tmux.swift     → Features/Terminal/TmuxPane.swift  Rename
-Terminal/RawTerminalUIVC+StatusBar.swift → Features/Terminal/StatusBar.swift Rename
-Terminal/RawTerminalUIVC+WindowPicker.swift → Features/Terminal/WindowPicker.swift Rename
+Terminal/RawTerminalUIViewController+Keyboard.swift → Features/Terminal/Keyboard.swift Rename
+Terminal/RawTerminalUIViewController+MenuBar.swift  → Features/Terminal/MenuBar.swift  Rename
+Terminal/RawTerminalUIViewController+Search.swift   → Features/Terminal/Search.swift   Rename
+Terminal/RawTerminalUIViewController+Shortcuts.swift → Features/Terminal/Shortcuts.swift Rename
+Terminal/RawTerminalUIViewController+Tmux.swift     → Features/Terminal/TmuxPane.swift  Rename
+Terminal/RawTerminalUIViewController+StatusBar.swift → Features/Terminal/StatusBar.swift Rename
+Terminal/RawTerminalUIViewController+WindowPicker.swift → Features/Terminal/WindowPicker.swift Rename
 Terminal/Theme.swift                  → Core/Config/ThemeManager.swift    Move
 Terminal/TmuxMultiPaneView.swift      → Features/Terminal/MultiPaneView.swift Rename
 Terminal/TmuxSplitView.swift          → Features/Terminal/SplitView.swift  Rename
@@ -213,29 +215,29 @@ UI/KeyTableIndicatorView.swift       → Features/Terminal/KeyTableIndicator.swi
 ### Priority Refactoring (Phase 2 scope)
 
 **P0 — Correctness** (do first):
-1. Fix Issue #3: Add `AutoReconnectService` driven by `scenePhase`
-2. Fix Issue #4: UUID-based sentinel in `TmuxSessionNameResolver`
-3. Add bounded queues with shedding in `TmuxSessionManager`
+1. Extract reconnect ownership into `ConnectionManager` or `AutoReconnectService` without changing the existing upstream lifecycle sequencing
+2. Add bounded queues with shedding in `SSHSession` and `TmuxSessionManager`
+3. Preserve the UUID-based `TmuxSessionNameResolver` behavior and carry its regression tests forward during the migration
 
 **P1 — Structure** (do second):
 4. Extract `TmuxSurfaceRegistry` from `TmuxSessionManager`
 5. Split `TerminalContainerView` ViewModel into connection state + UI state
-6. Reorganize into `Core/` and `Features/` directory structure
+6. Reorganize into `Core/` and `Features/` directory structure and wire the real Xcode targets around it
 
-**P2 — Robustness** (do third):
-7. Add surface creation timeout + error view
-8. Add exponential backoff to SSHSession reconnection
-9. Add SSH write failure detection → UI error state
+**P2 — Product Integration** (do third):
+7. Add `DaemonClient` and session browser flows against the current daemon API
+8. Add surface creation timeout + error view
+9. Add exponential backoff to SSHSession reconnection plus SSH write failure detection → UI error state
 
 ---
 
 ## What Requires macOS
 
 The following audit items can only be verified/implemented on macOS with Xcode:
-- Actual file moves and Xcode project reconfiguration
+- Xcode target creation, project wiring, and build setting migration
 - Metal rendering verification after refactoring
 - Instruments memory profiling
 - Device testing for reconnection fixes
 - UI test updates for new module structure
 
-The audit and refactoring plan documented here are complete. Implementation requires macOS.
+The source/resource/test scaffold can be prepared on Linux, but the final Phase 2 implementation still requires macOS for project wiring, build validation, and device testing.

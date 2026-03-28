@@ -1,0 +1,269 @@
+{
+  "manifest_version": 1,
+  "source": "github.com/daiimus/geistty v0.1-stable",
+  "upstream_project_root": "_upstream/geistty/Geistty",
+  "upstream_xcode_project": "_upstream/geistty/Geistty/Geistty.xcodeproj",
+  "ios_root": "ios",
+  "destination_root": "ios/iTTY",
+  "source_destination_root": "ios/iTTY/Sources",
+  "unit_tests_destination_root": "ios/iTTYTests/UpstreamParity",
+  "ui_tests_destination_root": "ios/iTTYUITests/UpstreamParity",
+  "assets_destination_root": "ios/iTTY/Assets.xcassets",
+  "resources_destination_root": "ios/iTTY/Resources",
+  "planned_new_files": [
+    "Features/Machines/TailscaleDiscoveryView.swift",
+    "Features/Terminal/TerminalTabBar.swift",
+    "Features/Onboarding/OnboardingView.swift",
+    "Services/Tailscale/TailscaleAPIClient.swift",
+    "Services/Tailscale/TailscaleVPNDetector.swift",
+    "Services/Connection/ConnectionManager.swift",
+    "Services/Connection/AutoReconnectService.swift"
+  ],
+  "source_map": [
+    {
+      "source": "App/GeisttyApp.swift",
+      "destination": "App/iTTYApp.swift",
+      "action": "Rename + extend"
+    },
+    {
+      "source": "App/ContentView.swift",
+      "destination": "App/ContentView.swift",
+      "action": "Replace (new nav)"
+    },
+    {
+      "source": "Auth/ConnectionProfile.swift",
+      "destination": "Core/Auth/ConnectionProfile.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Auth/CredentialProvider.swift",
+      "destination": "Core/Auth/CredentialProvider.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Auth/KeychainManager.swift",
+      "destination": "Core/Auth/KeychainManager.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Auth/SSHKeyManager.swift",
+      "destination": "Core/Auth/SSHKeyManager.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Auth/SSHKeyParser.swift",
+      "destination": "Core/Auth/SSHKeyParser.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Auth/BiometricGatekeeper.swift",
+      "destination": "Core/Auth/BiometricGatekeeper.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Ghostty/Ghostty.swift",
+      "destination": "Core/Terminal/SurfaceView.swift",
+      "action": "Refactor (extract)"
+    },
+    {
+      "source": "Ghostty/Ghostty.App.swift",
+      "destination": "Core/Terminal/GhosttyRuntime.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/Ghostty.Config.swift",
+      "destination": "Core/Terminal/GhosttyConfig.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/Ghostty.Command.swift",
+      "destination": "Core/Terminal/Commands.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/Ghostty.SearchState.swift",
+      "destination": "Core/Terminal/SearchState.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/GhosttyInput.swift",
+      "destination": "Core/Terminal/InputTranslation.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/FontMapping.swift",
+      "destination": "Core/Config/FontMapping.swift",
+      "action": "Move"
+    },
+    {
+      "source": "Ghostty/ConfigSyncManager.swift",
+      "destination": "Core/Config/ConfigSyncManager.swift",
+      "action": "Move"
+    },
+    {
+      "source": "Ghostty/SurfaceSearchOverlay.swift",
+      "destination": "Core/Terminal/SearchOverlay.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/SelectionOverlay.swift",
+      "destination": "Core/Terminal/SelectionOverlay.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Ghostty/TmuxSurfaceProtocol.swift",
+      "destination": "Core/Tmux/TmuxSurfaceProtocol.swift",
+      "action": "Move"
+    },
+    {
+      "source": "Ghostty/Ghostty.SurfaceConfiguration.swift",
+      "destination": "Core/Terminal/SurfaceConfiguration.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "SSH/SSHSession.swift",
+      "destination": "Core/SSH/SSHSession.swift",
+      "action": "Refactor"
+    },
+    {
+      "source": "SSH/NIOSSHConnection.swift",
+      "destination": "Core/SSH/NIOSSHConnection.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "SSH/SSHCommandRunner.swift",
+      "destination": "Core/SSH/SSHCommandRunner.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "SSH/TmuxSessionManager.swift",
+      "destination": "Core/Tmux/TmuxSessionManager.swift",
+      "action": "Refactor (extract registry)"
+    },
+    {
+      "source": "SSH/TmuxLayout.swift",
+      "destination": "Core/Tmux/TmuxLayout.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "SSH/TmuxSplitTree.swift",
+      "destination": "Core/Tmux/TmuxSplitTree.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "SSH/TmuxModels.swift",
+      "destination": "Core/Tmux/TmuxModels.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "SSH/TmuxSessionNameResolver.swift",
+      "destination": "Core/Tmux/TmuxSessionNameResolver.swift",
+      "action": "Keep (preserve UUID sentinel)"
+    },
+    {
+      "source": "SSH/TmuxWireDiagnostics.swift",
+      "destination": "Core/Tmux/TmuxWireDiagnostics.swift",
+      "action": "Keep"
+    },
+    {
+      "source": "Terminal/TerminalContainerView.swift",
+      "destination": "Features/Terminal/TerminalContainerView.swift",
+      "action": "Refactor"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+Keyboard.swift",
+      "destination": "Features/Terminal/Keyboard.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+MenuBar.swift",
+      "destination": "Features/Terminal/MenuBar.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+Search.swift",
+      "destination": "Features/Terminal/Search.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+Shortcuts.swift",
+      "destination": "Features/Terminal/Shortcuts.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+Tmux.swift",
+      "destination": "Features/Terminal/TmuxPane.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+StatusBar.swift",
+      "destination": "Features/Terminal/StatusBar.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/RawTerminalUIViewController+WindowPicker.swift",
+      "destination": "Features/Terminal/WindowPicker.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/Theme.swift",
+      "destination": "Core/Config/ThemeManager.swift",
+      "action": "Move"
+    },
+    {
+      "source": "Terminal/TmuxMultiPaneView.swift",
+      "destination": "Features/Terminal/MultiPaneView.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/TmuxSplitView.swift",
+      "destination": "Features/Terminal/SplitView.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/TmuxWindowPickerView.swift",
+      "destination": "Features/Terminal/WindowPickerView.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/TmuxSessionPickerView.swift",
+      "destination": "Features/Terminal/SessionPickerView.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/TmuxStatusBarView.swift",
+      "destination": "Features/Terminal/StatusBarView.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/CommandPaletteView.swift",
+      "destination": "Features/Terminal/CommandPalette.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "Terminal/TerminalToolbar.swift",
+      "destination": "Features/Terminal/Toolbar.swift",
+      "action": "Rename"
+    },
+    {
+      "source": "UI/ConnectionListView.swift",
+      "destination": "Features/Machines/ConnectionListView.swift",
+      "action": "Move (evolves into MachineListView)"
+    },
+    {
+      "source": "UI/ConnectionEditorView.swift",
+      "destination": "Features/Machines/ConnectionEditorView.swift",
+      "action": "Move (evolves into AddMachineView)"
+    },
+    {
+      "source": "UI/SettingsView.swift",
+      "destination": "Features/Settings/SettingsView.swift",
+      "action": "Move"
+    },
+    {
+      "source": "UI/KeyTableIndicatorView.swift",
+      "destination": "Features/Terminal/KeyTableIndicator.swift",
+      "action": "Move"
+    }
+  ]
+}

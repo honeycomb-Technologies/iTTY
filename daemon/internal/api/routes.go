@@ -1,8 +1,13 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"runtime"
+
+	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tmux"
 )
 
 // Version is set at build time via -ldflags.
@@ -15,6 +20,10 @@ type healthResponse struct {
 	Platform string `json:"platform"`
 	TmuxOK   bool   `json:"tmuxInstalled"`
 	TmuxVer  string `json:"tmuxVersion,omitempty"`
+}
+
+type autoWrapRequest struct {
+	Enabled *bool `json:"enabled"`
 }
 
 // handleHealth returns daemon status and tmux availability.
@@ -57,7 +66,11 @@ func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 
 	detail, err := s.tmux.GetSession(r.Context(), name)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, tmux.ErrSessionNotFound) {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, detail)
@@ -87,7 +100,55 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 // handleSetAutoWrap toggles the auto-tmux-wrap shell configuration.
 func (s *Server) handleSetAutoWrap(w http.ResponseWriter, r *http.Request) {
-	// TODO: Parse request body for {"enabled": true/false}
-	// TODO: Call shell.Configure() or shell.Unconfigure()
-	writeError(w, http.StatusNotImplemented, "not yet implemented")
+	var req autoWrapRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Enabled == nil {
+		writeError(w, http.StatusBadRequest, "enabled is required")
+		return
+	}
+
+	shellInfo, err := s.shell.Detect()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if *req.Enabled {
+		err = s.shell.Configure(shellInfo)
+	} else {
+		err = s.shell.Unconfigure(shellInfo)
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	nextConfig := *s.config
+	nextConfig.AutoWrap = *req.Enabled
+	if err := s.configStore.Save(&nextConfig); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	s.config.AutoWrap = *req.Enabled
+	writeJSON(w, http.StatusOK, s.config)
+}
+
+// handleGetWindows lists open terminal windows on the desktop.
+func (s *Server) handleGetWindows(w http.ResponseWriter, r *http.Request) {
+	windows, err := s.windows.ListWindows()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, windows)
 }

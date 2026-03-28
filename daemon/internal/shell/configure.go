@@ -3,6 +3,7 @@ package shell
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -55,6 +56,10 @@ func Configure(info *ShellInfo) error {
 		existing += "\n"
 	}
 	existing += "\n" + block
+
+	if err := os.MkdirAll(filepath.Dir(info.RCFile), 0o755); err != nil {
+		return fmt.Errorf("creating parent dir for %s: %w", info.RCFile, err)
+	}
 
 	if err := os.WriteFile(info.RCFile, []byte(existing), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", info.RCFile, err)

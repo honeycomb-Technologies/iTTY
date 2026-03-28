@@ -4,10 +4,12 @@
 - [Architecture](architecture.md) — Full system design (iOS app + daemon)
 - [Development](development.md) — How to build, test, and contribute
 - [Roadmap](roadmap.md) — Implementation phases and milestones
+- [Engineering Standards](engineering-standards.md) — Quality bar for all follow-on work
 
 ## iOS App
-- [Building](ios/building.md) — Build from source
-- [Project Structure](ios/project-structure.md) — Every directory and file explained
+- [Building](ios/building.md) — Current scaffold and Mac-only build steps
+- [Project Structure](ios/project-structure.md) — Current `ios/` layout
+- [Phase 2 Handoff](ios/phase2-handoff.md) — Verified audit corrections and Phase 3 gate
 - [libghostty Integration](ios/libghostty-integration.md) — How GhosttyKit is built and used
 - [Metal Rendering](ios/metal-rendering.md) — GPU rendering pipeline
 - [SSH Implementation](ios/ssh-implementation.md) — SwiftNIO-SSH fork details
