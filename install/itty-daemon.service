@@ -1,0 +1,23 @@
+[Unit]
+Description=iTTY Daemon — Desktop companion for the iTTY iOS terminal app
+Documentation=https://github.com/honeycomb-Technologies/iTTY
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/itty start
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/itty
+
+# Environment
+Environment=HOME=%h
+
+[Install]
+WantedBy=default.target
