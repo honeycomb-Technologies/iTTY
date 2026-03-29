@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+WindowPicker.swift
-//  Geistty
+//  iTTY
 //
 //  tmux window picker management for the terminal view controller.
 //
@@ -10,7 +10,7 @@ import SwiftUI
 import Combine
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Window Picker
 

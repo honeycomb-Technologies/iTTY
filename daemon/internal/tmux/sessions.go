@@ -12,6 +12,12 @@ import (
 // ErrSessionNotFound indicates that the requested tmux session does not exist.
 var ErrSessionNotFound = errors.New("session not found")
 
+// ErrSessionExists indicates that the requested tmux session already exists.
+var ErrSessionExists = errors.New("session already exists")
+
+// ErrInvalidSessionName indicates that a session name is empty or unsafe.
+var ErrInvalidSessionName = errors.New("invalid session name")
+
 // Session represents a tmux session with its metadata.
 type Session struct {
 	Name         string    `json:"name"`
@@ -45,6 +51,24 @@ type Pane struct {
 type SessionDetail struct {
 	Session
 	WindowList []Window `json:"windowList"`
+}
+
+// NewSession creates a new detached tmux session with the given name.
+// Returns the newly created session's detail.
+func (c *Client) NewSession(ctx context.Context, name string) (*SessionDetail, error) {
+	if err := validateSessionName(name); err != nil {
+		return nil, err
+	}
+
+	_, err := c.run(ctx, "new-session", "-d", "-s", name)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate session") {
+			return nil, fmt.Errorf("%w: %s", ErrSessionExists, name)
+		}
+		return nil, fmt.Errorf("creating session %q: %w", name, err)
+	}
+
+	return c.GetSession(ctx, name)
 }
 
 // ListSessions returns all tmux sessions with metadata.
@@ -201,6 +225,31 @@ func parseSessionLine(line string) (Session, error) {
 	}
 
 	return session, nil
+}
+
+func validateSessionName(name string) error {
+	if name == "" {
+		return fmt.Errorf("%w: session name is required", ErrInvalidSessionName)
+	}
+	if trimmed := strings.TrimSpace(name); trimmed != name {
+		return fmt.Errorf("%w: session name cannot have leading or trailing whitespace", ErrInvalidSessionName)
+	}
+	if len(name) > 64 {
+		return fmt.Errorf("%w: session name must be 64 characters or fewer", ErrInvalidSessionName)
+	}
+
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-', r == '_', r == '.':
+		default:
+			return fmt.Errorf("%w: session name may only contain letters, numbers, dot, underscore, and hyphen", ErrInvalidSessionName)
+		}
+	}
+
+	return nil
 }
 
 func parseWindowLine(line string) (Window, error) {

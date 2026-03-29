@@ -1,6 +1,6 @@
 //
 //  TmuxWindowTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for tmux window/tab management — creating, switching between,
 //  tapping, and closing windows via the TmuxWindowPickerView.

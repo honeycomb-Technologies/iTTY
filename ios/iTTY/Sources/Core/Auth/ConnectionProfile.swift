@@ -1,6 +1,6 @@
 //
 //  ConnectionProfile.swift
-//  Geistty
+//  iTTY
 //
 //  Model for saved SSH connection profiles with iCloud sync
 //
@@ -10,17 +10,17 @@ import SwiftUI
 import Combine
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "ConnectionProfile")
+private let logger = Logger(subsystem: "com.itty", category: "ConnectionProfile")
 
 /// Authentication method for SSH connections
 ///
 /// Best practices for SSH authentication:
 /// - **SSH Key** (preferred): More secure, no password to remember. Import .pem files from
-///   Files app or generate keys directly in Geistty.
+///   Files app or generate keys directly in iTTY.
 /// - **Password**: Enter manually at connection time. Optionally save in Keychain.
 ///
 /// Note: Desktop SSH agent integrations (1Password, LastPass, etc.) are not available
-/// on iOS. Import SSH keys into Geistty directly via Files, or generate them in-app.
+/// on iOS. Import SSH keys into iTTY directly via Files, or generate them in-app.
 enum AuthMethod: String, Codable, CaseIterable, Identifiable {
     case sshKey = "ssh_key"
     case password = "password"
@@ -63,7 +63,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     
     // Session options
     var useTmux: Bool  // Auto-attach to or create tmux session
-    var tmuxSessionName: String?  // Custom tmux session name (nil = auto geistty-N)
+    var tmuxSessionName: String?  // Custom tmux session name (nil = auto itty-N)
     
     // Files.app integration
     var enableFilesIntegration: Bool  // Show this server in Files.app sidebar

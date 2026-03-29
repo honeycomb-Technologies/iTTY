@@ -1,6 +1,6 @@
 //
 //  TerminalToolbar.swift
-//  Geistty
+//  iTTY
 //
 //  UIKit input accessory view providing one-tap access to common terminal
 //  symbols and control keys. Displayed above the software keyboard when the

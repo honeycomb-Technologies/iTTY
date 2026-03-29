@@ -1,6 +1,6 @@
 //
 //  SettingsTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the SettingsView: theme picker, cursor style, font family,
 //  font size slider, status bar toggle, opacity slider, config editor link.

@@ -1,6 +1,6 @@
 //
 //  FontMapping.swift
-//  Geistty
+//  iTTY
 //
 //  Unified font name mapping between GUI display names and Ghostty/CoreText names.
 //  This consolidates font definitions that were previously spread across:

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -23,10 +24,20 @@ type Client struct {
 	CommandTimeout time.Duration
 }
 
+// macOSAppCLI is the path to the Tailscale CLI embedded in the macOS app bundle.
+const macOSAppCLI = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+
 // NewClient creates a Client with sensible defaults.
+// It checks the standard PATH first, then falls back to the macOS app bundle.
 func NewClient() *Client {
+	bin := "tailscale"
+	if _, err := exec.LookPath(bin); err != nil {
+		if _, err := os.Stat(macOSAppCLI); err == nil {
+			bin = macOSAppCLI
+		}
+	}
 	return &Client{
-		BinPath:        "tailscale",
+		BinPath:        bin,
 		CommandTimeout: 10 * time.Second,
 	}
 }
@@ -84,6 +95,79 @@ func (c *Client) ServePort(ctx context.Context, port int) error {
 		return fmt.Errorf("tailscale serve --bg %s: %w", portStr, err)
 	}
 	return nil
+}
+
+// Peer represents a device on the user's tailnet.
+type Peer struct {
+	ID       string   `json:"id"`
+	Hostname string   `json:"hostname"`
+	DNSName  string   `json:"dnsName"`
+	OS       string   `json:"os"`
+	Online   bool     `json:"online"`
+	IPs      []string `json:"ips"`
+	Self     bool     `json:"self"`
+}
+
+// Peers returns all devices on the tailnet, including the local machine.
+// Returns an empty slice if Tailscale is not running.
+func (c *Client) Peers(ctx context.Context) ([]Peer, error) {
+	out, err := c.run(ctx, "status", "--json")
+	if err != nil {
+		return nil, fmt.Errorf("tailscale status: %w", err)
+	}
+
+	var status struct {
+		BackendState string `json:"BackendState"`
+		Self         struct {
+			ID           string   `json:"ID"`
+			HostName     string   `json:"HostName"`
+			DNSName      string   `json:"DNSName"`
+			OS           string   `json:"OS"`
+			Online       bool     `json:"Online"`
+			TailscaleIPs []string `json:"TailscaleIPs"`
+		} `json:"Self"`
+		Peer map[string]struct {
+			ID           string   `json:"ID"`
+			HostName     string   `json:"HostName"`
+			DNSName      string   `json:"DNSName"`
+			OS           string   `json:"OS"`
+			Online       bool     `json:"Online"`
+			TailscaleIPs []string `json:"TailscaleIPs"`
+		} `json:"Peer"`
+	}
+	if err := json.Unmarshal([]byte(out), &status); err != nil {
+		return nil, fmt.Errorf("decoding tailscale status: %w", err)
+	}
+
+	if status.BackendState != "Running" {
+		return []Peer{}, nil
+	}
+
+	peers := make([]Peer, 0, 1+len(status.Peer))
+
+	peers = append(peers, Peer{
+		ID:       status.Self.ID,
+		Hostname: status.Self.HostName,
+		DNSName:  strings.TrimSuffix(strings.TrimSpace(status.Self.DNSName), "."),
+		OS:       status.Self.OS,
+		Online:   status.Self.Online,
+		IPs:      status.Self.TailscaleIPs,
+		Self:     true,
+	})
+
+	for _, p := range status.Peer {
+		peers = append(peers, Peer{
+			ID:       p.ID,
+			Hostname: p.HostName,
+			DNSName:  strings.TrimSuffix(strings.TrimSpace(p.DNSName), "."),
+			OS:       p.OS,
+			Online:   p.Online,
+			IPs:      p.TailscaleIPs,
+			Self:     false,
+		})
+	}
+
+	return peers, nil
 }
 
 // ServeReset removes all tailscale serve configurations.

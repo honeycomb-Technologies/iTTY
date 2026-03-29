@@ -1,6 +1,6 @@
 //
 //  ToolbarTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the terminal toolbar — the virtual keyboard accessory row
 //  with Esc, Tab, Ctrl, arrow keys, and special characters.

@@ -1,6 +1,6 @@
 //
 //  TmuxSizingDebugTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Specific debug tests for the tmux pane sizing issues
 //  These tests capture detailed screenshots to help diagnose problems
@@ -173,7 +173,7 @@ final class TmuxSizingDebugTests: XCTestCase {
         
         print("📝 For window resize testing:")
         print("   1. Enable Stage Manager on iPad")
-        print("   2. Resize the Geistty window")
+        print("   2. Resize the iTTY window")
         print("   3. Observe if panes resize correctly")
         print("   4. Check if refresh-client -C is sent to tmux")
         

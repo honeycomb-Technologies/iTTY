@@ -1,6 +1,6 @@
 //
 //  ThemePickerTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the ThemePickerView: theme rows, selection checkmark,
 //  Light/Dark sections, tapping a different theme.

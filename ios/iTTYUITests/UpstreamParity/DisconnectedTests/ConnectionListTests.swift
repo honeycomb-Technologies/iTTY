@@ -1,6 +1,6 @@
 //
 //  ConnectionListTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the ConnectionListView modal: sections, search, quick connect,
 //  SSH keys link, and the add-connection button.

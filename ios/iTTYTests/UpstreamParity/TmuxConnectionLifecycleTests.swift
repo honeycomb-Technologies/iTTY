@@ -1,6 +1,6 @@
 //
 //  TmuxConnectionLifecycleTests.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Tests for the tmux connection lifecycle — the untested path that crashes.
 //  These exercise the notification-driven state machine in SSHSession:
@@ -13,7 +13,7 @@
 //
 
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 final class TmuxConnectionLifecycleTests: XCTestCase {
     

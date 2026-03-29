@@ -2,6 +2,7 @@ import Foundation
 
 enum DaemonClientError: Error, LocalizedError {
     case invalidBaseURL(String)
+    case invalidPathComponent(String)
     case invalidResponse
     case httpStatus(Int, String)
     case encodingFailed
@@ -11,6 +12,8 @@ enum DaemonClientError: Error, LocalizedError {
         switch self {
         case .invalidBaseURL(let address):
             return "Invalid daemon address: \(address)"
+        case .invalidPathComponent(let component):
+            return "Invalid daemon request path: \(component)"
         case .invalidResponse:
             return "The daemon returned an invalid response."
         case .httpStatus(let statusCode, let message):
@@ -34,15 +37,28 @@ struct DaemonClient {
     private let load: DataLoader
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+
+    private static let defaultSession: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 5
+        configuration.timeoutIntervalForResource = 10
+        return URLSession(configuration: configuration)
+    }()
+
+    private static let pathComponentAllowedCharacters: CharacterSet = {
+        var characters = CharacterSet.urlPathAllowed
+        characters.remove(charactersIn: "/")
+        return characters
+    }()
     
-    init(machine: Machine, session: URLSession = .shared) throws {
+    init(machine: Machine, session: URLSession = DaemonClient.defaultSession) throws {
         guard let baseURL = machine.daemonBaseURL else {
             throw DaemonClientError.invalidBaseURL(machine.daemonAuthority)
         }
         self.init(baseURL: baseURL, session: session)
     }
     
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(baseURL: URL, session: URLSession = DaemonClient.defaultSession) {
         self.init(baseURL: baseURL) { request in
             try await session.data(for: request)
         }
@@ -64,11 +80,11 @@ struct DaemonClient {
     }
     
     func sessionDetail(name: String) async throws -> SavedSessionDetail {
-        try await request(path: "/sessions/\(name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name)", method: "GET")
+        try await request(pathComponents: ["sessions", name], method: "GET")
     }
     
     func sessionContent(name: String) async throws -> SavedSessionContent {
-        try await request(path: "/sessions/\(name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name)/content", method: "GET")
+        try await request(pathComponents: ["sessions", name, "content"], method: "GET")
     }
     
     func config() async throws -> DaemonConfig {
@@ -82,9 +98,25 @@ struct DaemonClient {
     func windows() async throws -> [DesktopWindow] {
         try await request(path: "/windows", method: "GET")
     }
+
+    func peers() async throws -> [TailscalePeer] {
+        try await request(path: "/peers", method: "GET")
+    }
+
+    func createSession(name: String) async throws -> SavedSessionDetail {
+        try await request(path: "/sessions", method: "POST", body: ["name": name])
+    }
+
+    func registerDevice(token: String) async throws -> [String: String] {
+        try await request(path: "/devices", method: "POST", body: ["token": token])
+    }
     
     private func request<T: Decodable>(path: String, method: String) async throws -> T {
         try await performRequest(path: path, method: method, body: nil as AutoWrapRequest?)
+    }
+
+    private func request<T: Decodable>(pathComponents: [String], method: String) async throws -> T {
+        try await performRequest(pathComponents: pathComponents, method: method, body: nil as AutoWrapRequest?)
     }
     
     private func request<T: Decodable, Body: Encodable>(path: String, method: String, body: Body) async throws -> T {
@@ -93,6 +125,15 @@ struct DaemonClient {
     
     private func performRequest<T: Decodable, Body: Encodable>(path: String, method: String, body: Body?) async throws -> T {
         let url = try endpoint(path: path)
+        return try await performRequest(url: url, method: method, body: body)
+    }
+
+    private func performRequest<T: Decodable, Body: Encodable>(pathComponents: [String], method: String, body: Body?) async throws -> T {
+        let url = try endpoint(pathComponents: pathComponents)
+        return try await performRequest(url: url, method: method, body: body)
+    }
+
+    private func performRequest<T: Decodable, Body: Encodable>(url: URL, method: String, body: Body?) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -144,6 +185,32 @@ struct DaemonClient {
             throw DaemonClientError.invalidBaseURL(baseURL.absoluteString)
         }
         return url
+    }
+
+    private func endpoint(pathComponents: [String]) throws -> URL {
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false),
+              components.scheme != nil,
+              components.host != nil else {
+            throw DaemonClientError.invalidBaseURL(baseURL.absoluteString)
+        }
+
+        let basePath = components.percentEncodedPath
+            .split(separator: "/")
+            .map(String.init)
+        let encodedComponents = try pathComponents.map(Self.encodePathComponent)
+        components.percentEncodedPath = "/" + (basePath + encodedComponents).joined(separator: "/")
+
+        guard let url = components.url else {
+            throw DaemonClientError.invalidBaseURL(baseURL.absoluteString)
+        }
+        return url
+    }
+
+    private static func encodePathComponent(_ component: String) throws -> String {
+        guard let encoded = component.addingPercentEncoding(withAllowedCharacters: pathComponentAllowedCharacters) else {
+            throw DaemonClientError.invalidPathComponent(component)
+        }
+        return encoded
     }
     
     private static func makeDecoder() -> JSONDecoder {

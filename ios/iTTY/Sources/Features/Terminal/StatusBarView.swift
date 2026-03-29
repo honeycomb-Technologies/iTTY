@@ -1,6 +1,6 @@
 //
 //  TmuxStatusBarView.swift
-//  Geistty
+//  iTTY
 //
 //  A horizontal bar rendering tmux's expanded status-left and status-right text.
 //  Driven reactively by format subscriptions (refresh-client -B) — the Zig viewer

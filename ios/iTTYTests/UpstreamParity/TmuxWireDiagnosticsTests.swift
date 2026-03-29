@@ -1,6 +1,6 @@
 //
 //  TmuxWireDiagnosticsTests.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Tests for the tmux control mode wire diagnostics shadow parser.
 //  Validates octal unescaping, %output parsing, escape sequence validation,
@@ -8,7 +8,7 @@
 //
 
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 @MainActor final class TmuxWireDiagnosticsTests: XCTestCase {
     

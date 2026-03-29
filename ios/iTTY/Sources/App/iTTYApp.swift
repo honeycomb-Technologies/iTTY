@@ -46,20 +46,15 @@ struct iTTYApp: App {
             // MARK: - File Menu
             // Replace "New" with connection-related items
             CommandGroup(replacing: .newItem) {
-                Button("New Connection…") {
-                    NotificationCenter.default.post(name: .showNewConnection, object: nil)
+                Button("Find Computers…") {
+                    NotificationCenter.default.post(name: .showMachines, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: .command)
                 
-                Button("Quick Connect…") {
-                    NotificationCenter.default.post(name: .showQuickConnect, object: nil)
+                Button("Manual Setup…") {
+                    NotificationCenter.default.post(name: .showConnectionProfiles, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
-                
-                Button("Desktop Sessions…") {
-                    NotificationCenter.default.post(name: .showMachines, object: nil)
-                }
-                .keyboardShortcut("d", modifiers: [.command, .shift])
                 
                 Divider()
                 
@@ -196,11 +191,11 @@ struct iTTYApp: App {
             
             // MARK: - Connection Menu (Custom)
             CommandMenu("Connection") {
-                Button("Machines…") {
+                Button("Find Computers…") {
                     NotificationCenter.default.post(name: .showMachines, object: nil)
                 }
                 
-                Button("Connection Profiles…") {
+                Button("Manual Setup…") {
                     NotificationCenter.default.post(name: .showConnectionProfiles, object: nil)
                 }
                 

@@ -5,8 +5,8 @@ struct AddMachineView: View {
     
     @State private var name = ""
     @State private var daemonHost = ""
-    @State private var daemonPort = 8080
-    @State private var daemonScheme = "http"
+    @State private var daemonPort = 443
+    @State private var daemonScheme = "https"
     @State private var linkedProfileID: UUID?
     
     let onSave: (Machine) -> Void
@@ -16,25 +16,29 @@ struct AddMachineView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Desktop") {
+                Section {
                     TextField("Name", text: $name)
-                    TextField("Daemon Host", text: $daemonHost)
+                    TextField("Daemon Hostname", text: $daemonHost)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
                     
                     Picker("Scheme", selection: $daemonScheme) {
-                        Text("http").tag("http")
                         Text("https").tag("https")
+                        Text("http").tag("http")
                     }
                     
                     HStack {
                         Text("Port")
                         Spacer()
-                        TextField("8080", value: $daemonPort, format: .number)
+                        TextField("443", value: $daemonPort, format: .number)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                     }
+                } header: {
+                    Text("Computer")
+                } footer: {
+                    Text("Use `https` + `443` for Tailscale Serve. Switch to `http` + `3420` for a local or LAN daemon.")
                 }
                 
                 Section("Attach Flow") {
@@ -66,7 +70,7 @@ struct AddMachineView: View {
                     .disabled(!isValid)
                 }
             }
-            .navigationTitle("Add Machine")
+            .navigationTitle("Add Computer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

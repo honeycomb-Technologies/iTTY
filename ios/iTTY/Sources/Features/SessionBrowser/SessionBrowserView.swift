@@ -2,6 +2,17 @@ import SwiftUI
 
 @MainActor
 final class SessionBrowserViewModel: ObservableObject {
+    enum SessionBrowserError: LocalizedError {
+        case missingClient(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .missingClient(let message):
+                return message
+            }
+        }
+    }
+
     enum LoadState: Equatable {
         case idle
         case loading
@@ -100,6 +111,43 @@ final class SessionBrowserViewModel: ObservableObject {
             loadState = .failed(error.localizedDescription)
         }
     }
+
+    func createSession() async throws -> SavedSession {
+        guard let client else {
+            throw SessionBrowserError.missingClient(clientError ?? "Missing daemon client")
+        }
+
+        let detail = try await client.createSession(name: nextNewSessionName())
+        let session = SavedSession(
+            name: detail.name,
+            windows: detail.windows,
+            created: detail.created,
+            attached: detail.attached,
+            lastPaneCommand: detail.lastPaneCommand,
+            lastPanePath: detail.lastPanePath
+        )
+
+        if let existingIndex = sessions.firstIndex(where: { $0.name == session.name }) {
+            sessions[existingIndex] = session
+        } else {
+            sessions.append(session)
+        }
+        sessions.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        lastUpdatedAt = Date()
+        loadState = .loaded
+
+        return session
+    }
+
+    func nextNewSessionName() -> String {
+        let entries = sessions.map {
+            TmuxSessionNameResolver.SessionEntry(
+                name: $0.name,
+                attachedCount: $0.attached ? 1 : 0
+            )
+        }
+        return TmuxSessionNameResolver.nextNewSessionName(from: entries)
+    }
 }
 
 struct SessionBrowserView: View {
@@ -137,7 +185,7 @@ struct SessionBrowserView: View {
                     ContentUnavailableView(
                         "No Sessions",
                         systemImage: "terminal",
-                        description: Text("The daemon is reachable, but it did not report any tmux sessions.")
+                        description: Text("The daemon is reachable, but it did not report any tmux sessions. Tap + to create one.")
                     )
                 } else {
                     ForEach(viewModel.sessions) { session in
@@ -168,6 +216,16 @@ struct SessionBrowserView: View {
             }
         }
         .navigationTitle(viewModel.machine.displayName)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await createAndAttachSession() }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityIdentifier("NewSessionButton")
+            }
+        }
         .overlay {
             if viewModel.isLoading {
                 ProgressView("Loading daemon state…")
@@ -201,6 +259,15 @@ struct SessionBrowserView: View {
         }
     }
     
+    private func createAndAttachSession() async {
+        do {
+            let session = try await viewModel.createSession()
+            attach(to: session)
+        } catch {
+            viewModel.reportError(error.localizedDescription)
+        }
+    }
+
     private var canAttach: Bool {
         MachineStore.shared.linkedProfile(for: viewModel.machine) != nil && onConnect != nil
     }

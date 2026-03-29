@@ -97,6 +97,40 @@ final class DaemonClientTests: XCTestCase {
             XCTAssertEqual(error.localizedDescription, "session not found: missing")
         }
     }
+
+    func testSessionDetailPercentEncodesPathSeparatorInName() async throws {
+        let client = DaemonClient(baseURL: URL(string: "http://daemon.test")!) { request in
+            XCTAssertEqual(request.url?.path, "/sessions/work%2Fmain")
+            let body = """
+            {
+              "name": "work/main",
+              "windows": 1,
+              "created": "2026-03-28T20:18:00Z",
+              "attached": false,
+              "lastPaneCommand": null,
+              "lastPanePath": null,
+              "windowList": []
+            }
+            """
+            return (Data(body.utf8), Self.response(for: request, statusCode: 200))
+        }
+
+        let detail = try await client.sessionDetail(name: "work/main")
+        XCTAssertEqual(detail.name, "work/main")
+    }
+
+    func testNonHTTPResponseIsRejected() async {
+        let client = DaemonClient(baseURL: URL(string: "http://daemon.test")!) { _ in
+            (Data(), URLResponse())
+        }
+
+        do {
+            _ = try await client.health()
+            XCTFail("expected request to fail")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, DaemonClientError.invalidResponse.localizedDescription)
+        }
+    }
     
     private static func response(for request: URLRequest, statusCode: Int) -> HTTPURLResponse {
         HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!

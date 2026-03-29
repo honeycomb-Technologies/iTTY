@@ -1,6 +1,6 @@
 //
 //  Ghostty.App.swift
-//  Geistty
+//  iTTY
 //
 //  Main Ghostty application wrapper — manages ghostty_app_t and runtime callbacks.
 //  Extracted from Ghostty.swift — follows upstream Ghostty macOS naming convention.

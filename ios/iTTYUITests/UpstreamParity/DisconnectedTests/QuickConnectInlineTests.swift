@@ -1,6 +1,6 @@
 //
 //  QuickConnectInlineTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the inline QuickConnectView accessed from ConnectionListView
 //  (not the ConnectionSheet from the disconnected screen). Verifies

@@ -1,6 +1,6 @@
 //
 //  SSHKeyManager.swift
-//  Geistty
+//  iTTY
 //
 //  SSH key generation, import, and management
 //
@@ -10,7 +10,7 @@ import Security
 import CryptoKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "SSHKey")
+private let logger = Logger(subsystem: "com.itty", category: "SSHKey")
 
 /// Types of SSH keys we support
 enum SSHKeyType: String, CaseIterable, Identifiable {

@@ -1,13 +1,13 @@
 //
-//  GeisttyUITests.swift
-//  GeisttyUITests
+//  iTTYUITests.swift
+//  iTTYUITests
 //
-//  UI Tests for Geistty terminal app
+//  UI Tests for iTTY terminal app
 //
 
 import XCTest
 
-final class GeisttyUITests: XCTestCase {
+final class iTTYUITests: XCTestCase {
     
     var app: XCUIApplication!
     
@@ -37,11 +37,10 @@ final class GeisttyUITests: XCTestCase {
         // Take screenshot of launch state
         takeScreenshot(name: "01-App-Launch-State")
         
-        // Check for connection-related UI elements
-        // The app should show either a connection list or quick connect option
-        let exists = app.buttons["New Connection"].waitForExistence(timeout: 5) ||
-                     app.buttons["Quick Connect"].waitForExistence(timeout: 5) ||
-                     app.staticTexts["Connections"].waitForExistence(timeout: 5)
+        // Check for the disconnected-state entry points.
+        let exists = app.buttons["DisconnectedQuickConnectButton"].waitForExistence(timeout: 5) ||
+                     app.buttons["DisconnectedSavedConnectionsButton"].waitForExistence(timeout: 5) ||
+                     app.staticTexts["DisconnectedTitle"].waitForExistence(timeout: 5)
         
         takeScreenshot(name: "02-After-Wait-For-UI")
         
@@ -55,26 +54,14 @@ final class GeisttyUITests: XCTestCase {
     
     /// Test quick connect flow
     func testQuickConnectFlow() throws {
-        // Look for quick connect button or field
-        let quickConnectButton = app.buttons["Quick Connect"]
+        // Home now routes to the discovery flow first.
+        let quickConnectButton = app.buttons["DisconnectedQuickConnectButton"]
         if quickConnectButton.waitForExistence(timeout: 3) {
             quickConnectButton.tap()
         }
         
-        // Should see text fields for host/user/password
-        let hostField = app.textFields["Host"]
-        let userField = app.textFields["Username"]
-        
-        // If fields exist, try entering test values
-        if hostField.waitForExistence(timeout: 3) {
-            hostField.tap()
-            hostField.typeText("test.example.com")
-        }
-        
-        if userField.waitForExistence(timeout: 3) {
-            userField.tap()
-            userField.typeText("testuser")
-        }
+        XCTAssertTrue(app.navigationBars["Find Computers"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["TailscaleDiscoveryTitle"].exists)
     }
 }
 

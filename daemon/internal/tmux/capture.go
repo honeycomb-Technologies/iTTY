@@ -3,6 +3,7 @@ package tmux
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // CapturePaneContent captures the visible content of a pane.
@@ -20,5 +21,14 @@ func (c *Client) CapturePaneByID(ctx context.Context, paneID string) (string, er
 // CaptureSessionDefaultPane captures the active pane of the active window
 // in the given session.
 func (c *Client) CaptureSessionDefaultPane(ctx context.Context, sessionName string) (string, error) {
-	return c.run(ctx, "capture-pane", "-t", sessionName, "-p")
+	content, err := c.run(ctx, "capture-pane", "-t", sessionName, "-p")
+	if err != nil {
+		if strings.Contains(err.Error(), "can't find session") ||
+			strings.Contains(err.Error(), "can't find pane") {
+			return "", fmt.Errorf("%w: %s", ErrSessionNotFound, sessionName)
+		}
+		return "", err
+	}
+
+	return content, nil
 }

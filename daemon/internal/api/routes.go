@@ -56,6 +56,44 @@ func (s *Server) handleListSessions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, sessions)
 }
 
+type createSessionRequest struct {
+	Name string `json:"name"`
+}
+
+// handleCreateSession creates a new detached tmux session.
+func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
+	var req createSessionRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "session name is required")
+		return
+	}
+
+	detail, err := s.tmux.NewSession(r.Context(), req.Name)
+	if err != nil {
+		switch {
+		case errors.Is(err, tmux.ErrInvalidSessionName):
+			writeError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, tmux.ErrSessionExists):
+			writeError(w, http.StatusConflict, err.Error())
+		default:
+			writeError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, detail)
+}
+
 // handleGetSession returns detailed info for a single session.
 func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
@@ -87,6 +125,10 @@ func (s *Server) handleCaptureContent(w http.ResponseWriter, r *http.Request) {
 
 	content, err := s.tmux.CaptureSessionDefaultPane(r.Context(), name)
 	if err != nil {
+		if errors.Is(err, tmux.ErrSessionNotFound) {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -141,6 +183,22 @@ func (s *Server) handleSetAutoWrap(w http.ResponseWriter, r *http.Request) {
 
 	s.config.AutoWrap = *req.Enabled
 	writeJSON(w, http.StatusOK, s.config)
+}
+
+// handleGetPeers returns all devices on the user's tailnet.
+func (s *Server) handleGetPeers(w http.ResponseWriter, r *http.Request) {
+	if s.tailscale == nil {
+		writeError(w, http.StatusServiceUnavailable, "tailscale integration not available")
+		return
+	}
+
+	peers, err := s.tailscale.Peers(r.Context())
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, peers)
 }
 
 // handleGetWindows lists open terminal windows on the desktop.

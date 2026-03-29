@@ -1,6 +1,6 @@
 //
 //  SSHKeyParser.swift
-//  Geistty
+//  iTTY
 //
 //  SSH private key parsing utilities
 //  Extracted from SSHSession for sharing with File Provider extension
@@ -12,7 +12,7 @@ import Crypto
 @_spi(CryptoExtras) import _CryptoExtras
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "SSHKeyParser")
+private let logger = Logger(subsystem: "com.itty", category: "SSHKeyParser")
 
 /// SSH key parsing errors
 enum SSHKeyParseError: LocalizedError {

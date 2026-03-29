@@ -1,6 +1,6 @@
 //
 //  Theme.swift
-//  Geistty
+//  iTTY
 //
 //  Terminal color theme model and parser for Ghostty theme files
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Theme")
+private let logger = Logger(subsystem: "com.itty", category: "Theme")
 
 /// Represents a terminal color theme parsed from Ghostty theme files
 struct TerminalTheme: Identifiable, Equatable {

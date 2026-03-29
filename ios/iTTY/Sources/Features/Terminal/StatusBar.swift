@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+StatusBar.swift
-//  Geistty
+//  iTTY
 //
 //  tmux status bar management for the terminal view controller.
 //  Shows the expanded status-left/right text at the bottom of the terminal
@@ -12,7 +12,7 @@ import SwiftUI
 import Combine
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Status Bar
 

@@ -14,17 +14,20 @@ import (
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/config"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/platform"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/shell"
+	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tailscale"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tmux"
 )
 
 type fakeTmux struct {
-	installed  bool
-	version    string
-	sessions   []tmux.Session
-	session    *tmux.SessionDetail
-	sessionErr error
-	content    string
-	contentErr error
+	installed     bool
+	version       string
+	sessions      []tmux.Session
+	session       *tmux.SessionDetail
+	sessionErr    error
+	newSession    *tmux.SessionDetail
+	newSessionErr error
+	content       string
+	contentErr    error
 }
 
 func (f fakeTmux) IsInstalled(context.Context) bool {
@@ -41,6 +44,16 @@ func (f fakeTmux) ListSessions(context.Context) ([]tmux.Session, error) {
 
 func (f fakeTmux) GetSession(context.Context, string) (*tmux.SessionDetail, error) {
 	return f.session, f.sessionErr
+}
+
+func (f fakeTmux) NewSession(_ context.Context, name string) (*tmux.SessionDetail, error) {
+	if f.newSessionErr != nil {
+		return nil, f.newSessionErr
+	}
+	if f.newSession != nil {
+		return f.newSession, nil
+	}
+	return &tmux.SessionDetail{Session: tmux.Session{Name: name, Windows: 1}}, nil
 }
 
 func (f fakeTmux) CaptureSessionDefaultPane(context.Context, string) (string, error) {
@@ -100,7 +113,8 @@ func (f *fakeConfigStore) Save(cfg *config.Config) error {
 func TestGetConfigUsesExplicitJSONShape(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{installed: true, version: "3.6a"},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux", AutoWrap: true, TailscaleServe: true},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux", AutoWrap: true, TailscaleServe: true},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -122,8 +136,8 @@ func TestGetConfigUsesExplicitJSONShape(t *testing.T) {
 func TestSetAutoWrapPersistsAndReturnsConfig(t *testing.T) {
 	store := &fakeConfigStore{}
 	sh := &fakeShell{info: &shell.ShellInfo{Type: shell.Bash, RCFile: "/tmp/.bashrc"}}
-	cfg := &config.Config{ListenAddr: ":8080", TmuxPath: "tmux", AutoWrap: false, TailscaleServe: true}
-	server := NewServerWithDeps(fakeTmux{}, cfg, fakeWindows{}, sh, store)
+	cfg := &config.Config{ListenAddr: ":3420", TmuxPath: "tmux", AutoWrap: false, TailscaleServe: true}
+	server := NewServerWithDeps(fakeTmux{}, cfg, nil, fakeWindows{}, sh, store)
 
 	req := httptest.NewRequest(http.MethodPut, "/config/auto", strings.NewReader(`{"enabled":true}`))
 	rec := httptest.NewRecorder()
@@ -146,7 +160,8 @@ func TestSetAutoWrapPersistsAndReturnsConfig(t *testing.T) {
 func TestSetAutoWrapRejectsBadRequest(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux"},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -164,7 +179,8 @@ func TestSetAutoWrapRejectsBadRequest(t *testing.T) {
 func TestGetWindowsReturnsDiscovererOutput(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux"},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
 		fakeWindows{windows: []platform.TerminalWindow{{ID: "1", Title: "ghostty", App: "ghostty", Focused: true}}},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -190,7 +206,8 @@ func TestGetWindowsReturnsDiscovererOutput(t *testing.T) {
 func TestGetSessionMapsNotFoundTo404(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{sessionErr: fmt.Errorf("%w: missing", tmux.ErrSessionNotFound)},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux"},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -215,6 +232,7 @@ func TestStartReturnsBindError(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{},
 		&config.Config{ListenAddr: listener.Addr().String(), TmuxPath: "tmux"},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -229,7 +247,8 @@ func TestStartReturnsBindError(t *testing.T) {
 func TestShutdownBeforeStartIsSafe(t *testing.T) {
 	server := NewServerWithDeps(
 		fakeTmux{},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux"},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		&fakeConfigStore{},
@@ -244,7 +263,8 @@ func TestSetAutoWrapReturnsStoreError(t *testing.T) {
 	store := &fakeConfigStore{err: errors.New("disk full")}
 	server := NewServerWithDeps(
 		fakeTmux{},
-		&config.Config{ListenAddr: ":8080", TmuxPath: "tmux"},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
 		fakeWindows{},
 		&fakeShell{info: &shell.ShellInfo{}},
 		store,
@@ -256,5 +276,252 @@ func TestSetAutoWrapReturnsStoreError(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+type fakeTailscale struct {
+	peers []tailscale.Peer
+	err   error
+}
+
+func (f fakeTailscale) Peers(context.Context) ([]tailscale.Peer, error) {
+	return f.peers, f.err
+}
+
+func TestGetPeersSuccess(t *testing.T) {
+	ts := &fakeTailscale{
+		peers: []tailscale.Peer{
+			{ID: "self1", Hostname: "mac", DNSName: "mac.tail.ts.net", OS: "macOS", Online: true, Self: true},
+			{ID: "peer1", Hostname: "desktop", DNSName: "desktop.tail.ts.net", OS: "linux", Online: true},
+		},
+	}
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		ts,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/peers", nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	var peers []tailscale.Peer
+	if err := json.Unmarshal(rec.Body.Bytes(), &peers); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if len(peers) != 2 {
+		t.Fatalf("got %d peers, want 2", len(peers))
+	}
+}
+
+func TestGetPeersTailscaleNil(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/peers", nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
+func TestGetPeersCLIError(t *testing.T) {
+	ts := &fakeTailscale{err: errors.New("tailscale status: connection refused")}
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		ts,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/peers", nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadGateway)
+	}
+}
+
+func TestCreateSessionSuccess(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{"name":"itty-1"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+
+	var detail tmux.SessionDetail
+	if err := json.Unmarshal(rec.Body.Bytes(), &detail); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if detail.Name != "itty-1" {
+		t.Fatalf("session name = %q, want %q", detail.Name, "itty-1")
+	}
+}
+
+func TestCreateSessionMissingName(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestCreateSessionRejectsUnknownFields(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{"name":"itty-1","extra":true}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestCreateSessionRejectsTrailingJSON(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{"name":"itty-1"}{"name":"itty-2"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestCreateSessionMapsInvalidNameTo400(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{newSessionErr: fmt.Errorf("%w: session name may only contain letters", tmux.ErrInvalidSessionName)},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{"name":"bad/name"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+}
+
+func TestCreateSessionMapsDuplicateTo409(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{newSessionErr: fmt.Errorf("%w: itty-1", tmux.ErrSessionExists)},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/sessions", strings.NewReader(`{"name":"itty-1"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d body=%s", rec.Code, http.StatusConflict, rec.Body.String())
+	}
+}
+
+func TestCaptureContentMapsNotFoundTo404(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{contentErr: fmt.Errorf("%w: missing", tmux.ErrSessionNotFound)},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/sessions/missing/content", nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestGetPeersEmptyReturnsArray(t *testing.T) {
+	ts := &fakeTailscale{peers: []tailscale.Peer{}}
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		ts,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/peers", nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	body := strings.TrimSpace(rec.Body.String())
+	if body != "[]" {
+		t.Fatalf("body = %q, want %q", body, "[]")
 	}
 }

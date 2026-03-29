@@ -1,6 +1,6 @@
 //
 //  TmuxSessionPickerView.swift
-//  Geistty
+//  iTTY
 //
 //  A modal sheet for listing, switching, creating, renaming, and
 //  destroying tmux sessions. Presented from the window picker or
@@ -10,7 +10,7 @@
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxSessionPicker")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxSessionPicker")
 
 /// Delay before refreshing the session list after a fire-and-forget mutation
 /// (kill, rename). These commands use `sendCommandFireAndForget` which bypasses

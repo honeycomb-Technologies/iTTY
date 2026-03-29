@@ -1,6 +1,6 @@
 //
 //  KeyTableIndicatorView.swift
-//  Geistty
+//  iTTY
 //
 //  Visual indicator for active key tables (vim-style modal keys).
 //  Shown when a Ghostty key table is active.

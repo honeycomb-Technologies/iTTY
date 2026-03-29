@@ -1,6 +1,6 @@
 //
 //  ConnectedTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests that require an actual SSH connection
 //  Uses TestConfig.local.swift for credentials (gitignored)
@@ -9,7 +9,7 @@
 import os
 import XCTest
 
-private let logger = Logger(subsystem: "com.geistty.uitests", category: "ConnectedTests")
+private let logger = Logger(subsystem: "com.itty.uitests", category: "ConnectedTests")
 
 /// Tests that connect to a real SSH server for testing tmux integration
 /// Requires TestConfig.local.swift to be configured with valid credentials
@@ -91,7 +91,7 @@ final class ConnectedTests: XCTestCase {
         if connected {
             // Type a command to verify it's working
             Thread.sleep(forTimeInterval: 1.0)
-            app.typeText("echo 'Hello from Geistty UI Test!'\n")
+            app.typeText("echo 'Hello from iTTY UI Test!'\n")
             Thread.sleep(forTimeInterval: 0.5)
             takeScreenshot(name: "05-CommandExecuted")
         }

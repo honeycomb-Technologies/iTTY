@@ -13,7 +13,7 @@ import (
 // Config holds all daemon configuration.
 type Config struct {
 	// Server settings
-	ListenAddr string `toml:"listen_addr" json:"listenAddr"` // Address to bind HTTP server (default: ":8080")
+	ListenAddr string `toml:"listen_addr" json:"listenAddr"` // Address to bind HTTP server (default: ":3420")
 
 	// tmux settings
 	TmuxPath string `toml:"tmux_path" json:"tmuxPath"` // Path to tmux binary (default: "tmux")
@@ -31,7 +31,7 @@ type Config struct {
 // DefaultConfig returns configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		ListenAddr:     ":8080",
+		ListenAddr:     ":3420",
 		TmuxPath:       "tmux",
 		AutoWrap:       true,
 		TailscaleServe: true,

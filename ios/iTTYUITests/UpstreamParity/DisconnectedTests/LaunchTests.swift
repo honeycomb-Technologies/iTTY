@@ -1,6 +1,6 @@
 //
 //  LaunchTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for app launch state — verifies the disconnected screen appears
 //  correctly with expected UI elements.
@@ -51,8 +51,8 @@ final class LaunchTests: XCTestCase {
     func testNavigationBarTitle() throws {
         XCTAssertTrue(app.waitForDisconnectedScreen(timeout: 5))
 
-        let navTitle = app.navigationBars["Geistty"]
-        XCTAssertTrue(navTitle.exists, "Navigation bar should show 'Geistty'")
+        let navTitle = app.navigationBars["iTTY"]
+        XCTAssertTrue(navTitle.exists, "Navigation bar should show 'iTTY'")
 
         takeScreenshot(app, name: "Launch-03-NavBar")
     }

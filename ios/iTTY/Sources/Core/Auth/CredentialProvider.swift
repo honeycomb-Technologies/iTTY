@@ -1,13 +1,13 @@
 //
 //  CredentialProvider.swift
-//  Geistty
+//  iTTY
 //
 //  Unified interface for getting credentials from various sources
 //
 //  Best Practices for SSH Authentication:
 //  1. SSH Keys (preferred) - More secure, no password to remember
 //     - Import .pem/.key files from Files app
-//     - Generate Ed25519 or RSA keys directly in Geistty
+//     - Generate Ed25519 or RSA keys directly in iTTY
 //     - Keys stored securely in iOS Keychain
 //
 //  2. Password - User enters at connection time
@@ -16,14 +16,14 @@
 //
 //  Note on Password Managers:
 //  - Desktop SSH agent integrations (1Password, LastPass, etc.) are not available on iOS
-//  - To use keys from a password manager, export the .pem file and import into Geistty via Files
+//  - To use keys from a password manager, export the .pem file and import into iTTY via Files
 //
 
 import Foundation
 import NIOSSH
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Credentials")
+private let logger = Logger(subsystem: "com.itty", category: "Credentials")
 
 /// Protocol for credential providers
 protocol CredentialProvider {

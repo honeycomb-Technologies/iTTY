@@ -1,6 +1,6 @@
 //
 //  ConnectionListView.swift
-//  Geistty
+//  iTTY
 //
 //  Main view for managing saved connections
 //
@@ -8,7 +8,7 @@
 import os
 import SwiftUI
 
-private let logger = Logger(subsystem: "com.geistty", category: "ConnectionList")
+private let logger = Logger(subsystem: "com.itty", category: "ConnectionList")
 
 /// Main view showing saved connections with quick connect
 struct ConnectionListView: View {
@@ -294,6 +294,12 @@ struct ConnectionListView: View {
     // MARK: - Actions
     
     private func connect(to profile: ConnectionProfile) {
+        guard RuntimeEnvironment.supportsLiveTerminalSessions else {
+            errorMessage = RuntimeEnvironment.simulatorTerminalUnavailableMessage
+            showingError = true
+            return
+        }
+        
         connectionInProgress = profile
         
         Task {
@@ -325,6 +331,12 @@ struct ConnectionListView: View {
     }
     
     private func connectWithPassword(profile: ConnectionProfile, password: String) {
+        guard RuntimeEnvironment.supportsLiveTerminalSessions else {
+            errorMessage = RuntimeEnvironment.simulatorTerminalUnavailableMessage
+            showingError = true
+            return
+        }
+        
         connectionInProgress = profile
         
         Task {
@@ -497,6 +509,12 @@ struct QuickConnectView: View {
     }
     
     private func connect() {
+        guard RuntimeEnvironment.supportsLiveTerminalSessions else {
+            isConnecting = false
+            errorMessage = RuntimeEnvironment.simulatorTerminalUnavailableMessage
+            return
+        }
+        
         isConnecting = true
         errorMessage = nil
         

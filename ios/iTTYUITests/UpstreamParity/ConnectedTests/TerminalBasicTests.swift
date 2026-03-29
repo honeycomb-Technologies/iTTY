@@ -1,6 +1,6 @@
 //
 //  TerminalBasicTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for basic terminal functionality — verifying the terminal surface
 //  appears, accepts keyboard input, and executes commands after connecting.
@@ -84,7 +84,7 @@ final class TerminalBasicTests: XCTestCase {
     func testTypeCommandAndCaptureOutput() throws {
         takeScreenshot(app, name: "CaptureOutput-01-Before")
 
-        app.typeText("echo 'GEISTTY_TEST_MARKER'\n")
+        app.typeText("echo 'ITTY_TEST_MARKER'\n")
         Thread.sleep(forTimeInterval: 1.0)
 
         takeScreenshot(app, name: "CaptureOutput-02-AfterCommand")

@@ -17,7 +17,7 @@ struct Machine: Identifiable, Codable, Hashable {
         name: String,
         daemonScheme: String = "http",
         daemonHost: String,
-        daemonPort: Int = 8080,
+        daemonPort: Int = 3420,
         linkedProfileID: UUID? = nil,
         createdAt: Date = Date(),
         lastSeenAt: Date? = nil,
@@ -52,7 +52,7 @@ struct Machine: Identifiable, Codable, Hashable {
         name = try container.decode(String.self, forKey: .name)
         daemonScheme = try container.decodeIfPresent(String.self, forKey: .daemonScheme) ?? "http"
         daemonHost = try container.decode(String.self, forKey: .daemonHost)
-        daemonPort = try container.decodeIfPresent(Int.self, forKey: .daemonPort) ?? 8080
+        daemonPort = try container.decodeIfPresent(Int.self, forKey: .daemonPort) ?? 3420
         linkedProfileID = try container.decodeIfPresent(UUID.self, forKey: .linkedProfileID)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         lastSeenAt = try container.decodeIfPresent(Date.self, forKey: .lastSeenAt)
@@ -115,6 +115,21 @@ struct DesktopWindow: Codable, Identifiable, Hashable {
     let title: String
     let app: String
     let focused: Bool
+}
+
+struct TailscalePeer: Codable, Hashable, Identifiable {
+    let id: String
+    let hostname: String
+    let dnsName: String
+    let os: String
+    let online: Bool
+    let ips: [String]
+    let isSelf: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id, hostname, dnsName, os, online, ips
+        case isSelf = "self"
+    }
 }
 
 @MainActor

@@ -1,6 +1,6 @@
 //
 //  TmuxModels.swift
-//  Geistty
+//  iTTY
 //
 //  Data models for tmux session/window/pane state.
 //  These represent the tmux server's view of the world.

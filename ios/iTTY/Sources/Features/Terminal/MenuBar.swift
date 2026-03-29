@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+MenuBar.swift
-//  Geistty
+//  iTTY
 //
 //  Menu bar notification setup and action handlers for the terminal view controller.
 //
@@ -10,7 +10,7 @@ import SwiftUI
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Menu Bar
 

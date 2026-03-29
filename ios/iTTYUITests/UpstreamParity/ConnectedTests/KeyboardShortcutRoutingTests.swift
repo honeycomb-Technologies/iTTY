@@ -1,6 +1,6 @@
 //
 //  KeyboardShortcutRoutingTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for keyboard shortcut edge cases: cross-shortcut interaction,
 //  overlay conflicts, and responder chain routing verification.

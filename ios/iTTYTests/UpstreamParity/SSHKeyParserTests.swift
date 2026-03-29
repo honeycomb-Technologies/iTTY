@@ -1,6 +1,6 @@
 import XCTest
 import CryptoKit
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - SSHKeyParser Tests
 

@@ -1,14 +1,15 @@
 //
 //  QuickConnectSheetTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
-//  Tests for the Quick Connect sheet (ConnectionSheet in ContentView):
-//  field presence, validation, form entry.
+//  Covers the disconnected-screen primary flow after the Tailscale-first
+//  redesign. The home action now opens discovery instead of the legacy
+//  direct-SSH quick connect sheet.
 //
 
 import XCTest
 
-final class QuickConnectSheetTests: XCTestCase {
+final class TailscaleDiscoveryTests: XCTestCase {
 
     var app: XCUIApplication!
 
@@ -16,16 +17,13 @@ final class QuickConnectSheetTests: XCTestCase {
         continueAfterFailure = false
         app = launchForDisconnectedTests()
 
-        // Open the Quick Connect sheet from the disconnected screen
-        let quickConnect = app.buttons["DisconnectedQuickConnectButton"]
-        XCTAssertTrue(quickConnect.waitForExistence(timeout: 5),
-                      "DisconnectedQuickConnectButton must exist to run these tests")
-        quickConnect.tap()
+        let findComputers = app.buttons["DisconnectedQuickConnectButton"]
+        XCTAssertTrue(findComputers.waitForExistence(timeout: 5))
+        findComputers.tap()
 
-        // Wait for the sheet to present
-        let hostField = app.textFields["SheetHostField"]
-        XCTAssertTrue(hostField.waitForExistence(timeout: 3),
-                      "Quick Connect sheet should present with host field")
+        let navBar = app.navigationBars["Find Computers"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 3),
+                      "Discovery view should appear from the disconnected screen")
     }
 
     override func tearDownWithError() throws {
@@ -33,122 +31,47 @@ final class QuickConnectSheetTests: XCTestCase {
         app = nil
     }
 
-    // MARK: - Field Presence
+    func testDiscoveryScreenShowsPrimaryActions() throws {
+        XCTAssertTrue(app.staticTexts["TailscaleDiscoveryTitle"].exists)
+        XCTAssertTrue(app.buttons["TailscaleRefreshButton"].exists)
+        XCTAssertTrue(app.buttons["TailscaleAddComputerButton"].exists)
+        XCTAssertTrue(app.buttons["AddComputerManuallyButton"].exists)
+        XCTAssertTrue(app.buttons["ManualSSHSetupButton"].exists)
 
-    /// All expected form fields are present in the sheet.
-    func testSheetFieldsExist() throws {
-        XCTAssertTrue(app.textFields["SheetHostField"].exists, "Host field should exist")
-        XCTAssertTrue(app.textFields["SheetUsernameField"].exists, "Username field should exist")
-        XCTAssertTrue(app.secureTextFields["SheetPasswordField"].exists, "Password field should exist")
-        XCTAssertTrue(app.buttons["SheetConnectButton"].exists, "Connect button should exist")
-
-        takeScreenshot(app, name: "QuickConnect-01-AllFields")
+        takeScreenshot(app, name: "Discovery-01-PrimaryActions")
     }
 
-    /// Sheet has a Cancel button in the toolbar.
-    func testSheetHasCancelButton() throws {
-        let cancel = app.buttons["Cancel"]
-        XCTAssertTrue(cancel.exists, "Cancel button should exist in sheet toolbar")
+    func testManualSSHSetupOpensConnectionList() throws {
+        let manualSetup = app.buttons["ManualSSHSetupButton"]
+        XCTAssertTrue(manualSetup.exists)
+        manualSetup.tap()
 
-        takeScreenshot(app, name: "QuickConnect-02-CancelButton")
+        let navBar = app.navigationBars["Connections"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["QuickConnectButton"].exists)
+
+        takeScreenshot(app, name: "Discovery-02-ManualSetup")
     }
 
-    /// Sheet title is "New Connection".
-    func testSheetTitle() throws {
-        let navBar = app.navigationBars["New Connection"]
-        XCTAssertTrue(navBar.exists, "Sheet nav bar should show 'New Connection'")
+    func testAddComputerOpensComputerEditor() throws {
+        let addComputer = app.buttons["TailscaleAddComputerButton"]
+        XCTAssertTrue(addComputer.exists)
+        addComputer.tap()
 
-        takeScreenshot(app, name: "QuickConnect-03-Title")
+        let navBar = app.navigationBars["Add Computer"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["Name"].exists)
+        XCTAssertTrue(app.textFields["Daemon Hostname"].exists)
+
+        takeScreenshot(app, name: "Discovery-03-AddComputer")
     }
 
-    // MARK: - Validation
+    func testDoneDismissesDiscovery() throws {
+        app.buttons["Done"].tap()
 
-    /// Connect button is disabled when host is empty.
-    func testConnectDisabledWithEmptyHost() throws {
-        // Clear the host field (it may have a debug default)
-        let hostField = app.textFields["SheetHostField"]
-        hostField.tap()
-        // Select all and delete
-        hostField.press(forDuration: 1.0)
-        if app.menuItems["Select All"].waitForExistence(timeout: 2) {
-            app.menuItems["Select All"].tap()
-            hostField.typeText(XCUIKeyboardKey.delete.rawValue)
-        }
+        XCTAssertTrue(app.waitForDisconnectedScreen(timeout: 3),
+                      "Done should return to the disconnected screen")
 
-        // Also clear username
-        let usernameField = app.textFields["SheetUsernameField"]
-        usernameField.tap()
-        usernameField.press(forDuration: 1.0)
-        if app.menuItems["Select All"].waitForExistence(timeout: 2) {
-            app.menuItems["Select All"].tap()
-            usernameField.typeText(XCUIKeyboardKey.delete.rawValue)
-        }
-
-        let connect = app.buttons["SheetConnectButton"]
-        XCTAssertFalse(connect.isEnabled, "Connect should be disabled with empty fields")
-
-        takeScreenshot(app, name: "QuickConnect-04-DisabledConnect")
+        takeScreenshot(app, name: "Discovery-04-Dismissed")
     }
-
-    // MARK: - Form Entry
-
-    /// Can type into all fields.
-    func testCanTypeInFields() throws {
-        let hostField = app.textFields["SheetHostField"]
-        hostField.tap()
-        // Clear existing text first
-        hostField.press(forDuration: 1.0)
-        if app.menuItems["Select All"].waitForExistence(timeout: 2) {
-            app.menuItems["Select All"].tap()
-        }
-        hostField.typeText("test.example.com")
-
-        let usernameField = app.textFields["SheetUsernameField"]
-        usernameField.tap()
-        usernameField.press(forDuration: 1.0)
-        if app.menuItems["Select All"].waitForExistence(timeout: 2) {
-            app.menuItems["Select All"].tap()
-        }
-        usernameField.typeText("testuser")
-
-        let passwordField = app.secureTextFields["SheetPasswordField"]
-        passwordField.tap()
-        passwordField.typeText("testpass")
-
-        takeScreenshot(app, name: "QuickConnect-05-FilledFields")
-    }
-
-    // MARK: - Dismiss
-
-    /// Tapping Cancel dismisses the sheet.
-    func testCancelDismissesSheet() throws {
-        let cancel = app.buttons["Cancel"]
-        cancel.tap()
-
-        // Sheet should be gone — host field should disappear
-        let hostField = app.textFields["SheetHostField"]
-        XCTAssertTrue(hostField.waitForDisappearance(timeout: 3),
-                      "Sheet should dismiss after tapping Cancel")
-
-        // Disconnected screen should be back
-        XCTAssertTrue(app.isOnDisconnectedScreen,
-                      "Should return to disconnected screen")
-
-        takeScreenshot(app, name: "QuickConnect-06-Dismissed")
-    }
-
-    // MARK: - Debug Test Server Button
-
-    #if DEBUG
-    /// In DEBUG builds, a "Use test.rebex.net" button should exist.
-    func testDebugTestServerButton() throws {
-        let testServer = app.buttons["Use test.rebex.net"]
-        // This lives in the "Test Servers" section of the sheet
-        // It may need scrolling to find
-        if testServer.waitForExistence(timeout: 2) {
-            XCTAssertTrue(testServer.exists, "Debug test server button should exist")
-            takeScreenshot(app, name: "QuickConnect-07-DebugButton")
-        }
-    }
-    #endif
 }

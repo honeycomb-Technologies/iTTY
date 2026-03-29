@@ -1,6 +1,6 @@
 //
 //  UITestHelpers.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Shared helpers for all UI tests: screenshot capture, element waits,
 //  accessibility-identifier queries, connection utilities, and visual
@@ -12,7 +12,7 @@ import XCTest
 import CoreGraphics
 import UniformTypeIdentifiers
 
-private let logger = Logger(subsystem: "com.geistty.uitests", category: "Helpers")
+private let logger = Logger(subsystem: "com.itty.uitests", category: "Helpers")
 
 // MARK: - Screenshot Helpers
 

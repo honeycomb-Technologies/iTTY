@@ -1,6 +1,6 @@
 //
 //  TmuxSplitTree.swift
-//  Geistty
+//  iTTY
 //
 //  A tree structure representing tmux split panes, ported from Ghostty's SplitTree.
 //  Adapted for iOS/iPadOS with tmux pane ID references instead of view references.
@@ -9,7 +9,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxSplitTree")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxSplitTree")
 
 // MARK: - TmuxSplitTree
 

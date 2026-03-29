@@ -1,6 +1,6 @@
 //
 //  TmuxWindowPickerView.swift
-//  Geistty
+//  iTTY
 //
 //  A horizontal tab bar showing tmux windows, allowing switching between them.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxWindowPicker")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxWindowPicker")
 
 /// A horizontal tab bar showing tmux windows
 struct TmuxWindowPickerView: View {

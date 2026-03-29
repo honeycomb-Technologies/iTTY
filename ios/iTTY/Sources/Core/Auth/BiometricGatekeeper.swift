@@ -1,6 +1,6 @@
 //
 //  BiometricGatekeeper.swift
-//  Geistty
+//  iTTY
 //
 //  Session-scoped biometric authentication gatekeeper.
 //
@@ -21,7 +21,7 @@ import UIKit
 import LocalAuthentication
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Biometric")
+private let logger = Logger(subsystem: "com.itty", category: "Biometric")
 
 /// Manages session-scoped biometric authentication for SSH key access.
 ///

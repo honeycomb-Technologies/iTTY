@@ -1,5 +1,5 @@
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - TmuxStateReconciliation Tests
 

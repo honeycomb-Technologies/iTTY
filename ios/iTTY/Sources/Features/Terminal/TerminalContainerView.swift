@@ -1,6 +1,6 @@
 //
 //  TerminalContainerView.swift
-//  Geistty
+//  iTTY
 //
 //  Terminal container using Ghostty for terminal emulation
 //
@@ -11,7 +11,7 @@ import Combine
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 /// Container view that wraps the Ghostty terminal surface
 struct TerminalContainerView: View {

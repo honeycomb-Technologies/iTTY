@@ -4,22 +4,30 @@
 
 iTTY targets a two-component persistent remote terminal system:
 - **Desktop Daemon** (`/daemon/`): Go binary that manages tmux sessions and exposes them via REST API
-- **iOS App**: planned integration based on the Geistty fork and libghostty
+- **iOS App** (`/ios/`): Swift/SwiftUI app powered by libghostty (Ghostty terminal engine)
 
 ## Repository Structure
 
 ```
 iTTY/
 ├── daemon/       # Desktop daemon — Go
-├── ios/          # iOS scaffold copied from upstream Geistty; not buildable yet
+├── ios/          # iOS app — Swift/SwiftUI + GhosttyKit
+│   ├── project.yml           # xcodegen spec (generates iTTY.xcodeproj)
+│   ├── iTTY.xcodeproj/       # Generated — do not edit directly
+│   ├── iTTY/Sources/         # App source (57 Swift files)
+│   ├── iTTYTests/            # Unit tests
+│   └── iTTYUITests/          # UI tests
 ├── docs/         # Documentation, roadmap, and engineering standards
-└── _upstream/    # Upstream Geistty clone (reference only, not part of build)
+└── _upstream/    # Upstream references (gitignored, not part of build)
 ```
 
 Current reality:
-- `ios/` now contains a Linux-generated source/resource/test scaffold under `ios/iTTY/`
-- there is still no buildable Xcode target in this repository
-- `_upstream/geistty/` remains the upstream source of truth for project wiring and parity checks
+- `ios/` has a real Xcode project with three targets (app, unit tests, UI tests)
+- SPM dependencies resolve (swift-nio-ssh, swift-nio-transport-services)
+- GhosttyKit.xcframework is built via `scripts/build_ghosttykit.sh`
+- `_upstream/ghostty` is expected on branch `ios-external-backend` at commit `21c717340b62349d67124446c2447bf38796540b`
+- repo-owned Ghostty fixes live in `patches/ghostty/` because `_upstream/` is gitignored
+- All Geistty → iTTY symbol renames are complete
 - `docs/roadmap.md` is the current implementation status reference
 - `docs/engineering-standards.md` is the required quality bar for follow-on work
 
@@ -40,11 +48,33 @@ Use `make build` rather than bare `go build ./cmd/itty` so build output stays in
 
 ### iOS App
 ```bash
-make scaffold-ios       # Copy the verified scaffold into ios/
-make check-ios-scaffold # Verify scaffold + manifest completeness
-
-# Build and runtime verification still require macOS + Xcode.
+cd ios
+xcodegen generate                    # Regenerate Xcode project from project.yml
+xcodebuild -project iTTY.xcodeproj \
+  -scheme iTTY \
+  -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO \
+  build                              # Verified Apple silicon simulator build (requires GhosttyKit.xcframework)
 ```
+
+#### Building GhosttyKit
+```bash
+# Preferred path: applies repo patches, mounts Metal Toolchain if needed,
+# builds GhosttyKit, installs it into ios/iTTY/Frameworks, and renames module maps.
+./scripts/build_ghosttykit.sh
+
+# Manual fallback from _upstream/ghostty:
+/opt/homebrew/bin/zig build \
+  -Demit-xcframework=true \
+  -Dxcframework-target=universal \
+  -Demit-macos-app=false
+```
+
+If `zig` on your `PATH` is not the Homebrew build, set `ZIG_BIN=/absolute/path/to/zig`
+before running `scripts/build_ghosttykit.sh`.
+
+Note: the current GhosttyKit output contains an `ios-arm64-simulator` slice, so
+`ios/project.yml` intentionally excludes `x86_64` for simulator builds.
 
 ### Daemon CLI
 ```bash
@@ -95,11 +125,12 @@ Hard requirements:
 - Do not broaden the repo shape in docs beyond what actually exists
 
 ### Swift (iOS)
-- Follow existing Geistty patterns
 - `@MainActor` on all UI-related types
 - Protocols for testability (mock SSH, mock tmux surface)
-- Core Data for persistence, Keychain for secrets
-- Preserve upstream reconnect ordering and UUID-based tmux session resolution during migration
+- Keychain for secrets, UserDefaults for preferences
+- Preserve upstream reconnect ordering and UUID-based tmux session resolution
+- Session naming prefix is `itty-N` (matches daemon's auto-wrap prefix)
+- `ios/project.yml` is the source of truth; regenerate with `xcodegen generate`
 
 ## Key Architecture Decisions
 

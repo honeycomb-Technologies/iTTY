@@ -1,6 +1,6 @@
 //
 //  TmuxSurfaceProtocol.swift
-//  Geistty
+//  iTTY
 //
 //  Protocol abstracting Ghostty surface tmux C API methods.
 //  Enables unit testing of tmux lifecycle code without a real Ghostty surface.

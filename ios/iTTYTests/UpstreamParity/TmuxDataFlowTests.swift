@@ -1,6 +1,6 @@
 //
 //  TmuxDataFlowTests.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Tests for tmux data ingress paths — how received SSH data flows through
 //  SSHSession to Ghostty (via delegate) or gets buffered.
@@ -14,7 +14,7 @@
 //
 
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 final class TmuxDataFlowTests: XCTestCase {
     
@@ -339,7 +339,7 @@ final class TmuxDataFlowTests: XCTestCase {
         session.setSessionDiscoveryStateAwaitingForTesting()
         
         // Simulate shell echo data (no DCS 1000p)
-        let shellEcho = "exec tmux -CC new-session -A -s 'geistty-1'\r\n".data(using: .utf8)!
+        let shellEcho = "exec tmux -CC new-session -A -s 'itty-1'\r\n".data(using: .utf8)!
         session.simulateReceivedDataForTesting(shellEcho)
         
         // Data should NOT be forwarded to delegate
@@ -393,7 +393,7 @@ final class TmuxDataFlowTests: XCTestCase {
         session.setSessionDiscoveryStateAwaitingForTesting()
         
         // Simulate a chunk with shell echo + DCS 1000p + tmux output
-        let shellEcho = "exec tmux -CC new-session -A -s 'geistty-1'\r\n"
+        let shellEcho = "exec tmux -CC new-session -A -s 'itty-1'\r\n"
         let dcsAndOutput = "\u{1b}P1000p%output %0 hello\n"
         let combined = (shellEcho + dcsAndOutput).data(using: .utf8)!
         session.simulateReceivedDataForTesting(combined)
@@ -422,7 +422,7 @@ final class TmuxDataFlowTests: XCTestCase {
         
         // Simulate several chunks of shell output before DCS 1000p
         let chunk1 = "exec tmux".data(using: .utf8)!
-        let chunk2 = " -CC new-session -A -s 'geistty-1'\r\n".data(using: .utf8)!
+        let chunk2 = " -CC new-session -A -s 'itty-1'\r\n".data(using: .utf8)!
         let chunk3 = "some other shell output\r\n".data(using: .utf8)!
         
         session.simulateReceivedDataForTesting(chunk1)

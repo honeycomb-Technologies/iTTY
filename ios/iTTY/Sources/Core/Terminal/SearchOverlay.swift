@@ -1,6 +1,6 @@
 //
 //  SurfaceSearchOverlay.swift
-//  Geistty
+//  iTTY
 //
 //  Search overlay for the terminal, adapted from macOS Ghostty implementation
 //

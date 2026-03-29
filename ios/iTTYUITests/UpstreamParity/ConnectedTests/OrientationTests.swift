@@ -1,6 +1,6 @@
 //
 //  OrientationTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for device orientation changes — verifying the terminal surface,
 //  split panes, and overlays survive rotation transitions.

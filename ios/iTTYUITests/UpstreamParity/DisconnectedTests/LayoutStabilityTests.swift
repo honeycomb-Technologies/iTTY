@@ -1,6 +1,6 @@
 //
 //  LayoutStabilityTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests that the app's layout remains stable (no shifts or jumps) during
 //  user interactions that historically triggered spurious layout changes.

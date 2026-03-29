@@ -1,25 +1,25 @@
 //
 //  TmuxSessionNameResolver.swift
-//  Geistty
+//  iTTY
 //
 //  Pure logic for resolving tmux session names.
-//  Parses `tmux list-sessions` output and picks the right geistty-N session.
+//  Parses `tmux list-sessions` output and picks the right itty-N session.
 //
 
 import Foundation
 
-/// Resolves the tmux session name for Geistty connections.
+/// Resolves the tmux session name for iTTY connections.
 ///
 /// Strategy:
 /// - If the user specified a custom name, use it verbatim.
 /// - Otherwise, query existing sessions and:
-///   1. Reattach to the lowest-numbered unattached `geistty-N` session
-///   2. If all `geistty-N` sessions are attached, create `geistty-<max+1>`
-///   3. If no `geistty-N` sessions exist, create `geistty-1`
+///   1. Reattach to the lowest-numbered unattached `itty-N` session
+///   2. If all `itty-N` sessions are attached, create `itty-<max+1>`
+///   3. If no `itty-N` sessions exist, create `itty-1`
 struct TmuxSessionNameResolver {
     
     /// The prefix for auto-generated session names
-    static let prefix = "geistty-"
+    static let prefix = "itty-"
     
     /// Generate a unique end marker with a nonce to prevent false positive
     /// detection on the shell's command echo. Without the nonce, the echoed
@@ -27,7 +27,7 @@ struct TmuxSessionNameResolver {
     /// causing discovery to resolve prematurely with zero sessions. See #4.
     static func makeEndMarker() -> String {
         let nonce = UUID().uuidString.prefix(8)
-        return "---GEISTTY-END-\(nonce)---"
+        return "---ITTY-END-\(nonce)---"
     }
     
     /// The shell command to query existing tmux sessions.
@@ -84,11 +84,11 @@ struct TmuxSessionNameResolver {
         return entries
     }
     
-    /// Extract the numeric suffix from a `geistty-N` session name.
+    /// Extract the numeric suffix from a `itty-N` session name.
     ///
-    /// - Parameter name: Session name (e.g., "geistty-3")
-    /// - Returns: The number N, or nil if not a geistty session
-    static func geisttyNumber(from name: String) -> Int? {
+    /// - Parameter name: Session name (e.g., "itty-3")
+    /// - Returns: The number N, or nil if not an itty session
+    static func ittyNumber(from name: String) -> Int? {
         guard name.hasPrefix(prefix) else { return nil }
         return Int(name.dropFirst(prefix.count))
     }
@@ -98,25 +98,32 @@ struct TmuxSessionNameResolver {
     /// - Parameter sessions: Parsed session entries from `parseSessions(from:)`
     /// - Returns: The session name to attach to or create
     static func resolve(from sessions: [SessionEntry]) -> String {
-        let geisttySessions = sessions
+        let ittySessions = sessions
             .compactMap { entry -> (entry: SessionEntry, number: Int)? in
-                guard let n = geisttyNumber(from: entry.name) else { return nil }
+                guard let n = ittyNumber(from: entry.name) else { return nil }
                 return (entry, n)
             }
             .sorted { $0.number < $1.number }
         
-        // No geistty sessions exist → create geistty-1
-        if geisttySessions.isEmpty {
+        // No itty sessions exist -> create itty-1
+        if ittySessions.isEmpty {
             return "\(prefix)1"
         }
         
         // Find the lowest-numbered unattached session
-        if let unattached = geisttySessions.first(where: { !$0.entry.isAttached }) {
+        if let unattached = ittySessions.first(where: { !$0.entry.isAttached }) {
             return unattached.entry.name
         }
         
         // All attached → create next number
-        let maxNumber = geisttySessions.last?.number ?? 0
+        let maxNumber = ittySessions.last?.number ?? 0
+        return "\(prefix)\(maxNumber + 1)"
+    }
+
+    /// Resolve the next fresh `itty-N` name for explicit new-session creation.
+    /// Unlike `resolve(from:)`, this never reuses an existing unattached session.
+    static func nextNewSessionName(from sessions: [SessionEntry]) -> String {
+        let maxNumber = sessions.compactMap { ittyNumber(from: $0.name) }.max() ?? 0
         return "\(prefix)\(maxNumber + 1)"
     }
     
@@ -136,7 +143,7 @@ struct TmuxSessionNameResolver {
     ///
     /// Uses backwards search to find the LAST occurrence of the end marker.
     /// This is critical because the shell's command echo contains the marker
-    /// embedded in `echo '---GEISTTY-END-XXXX---'`, which would match before
+    /// embedded in `echo '---ITTY-END-XXXX---'`, which would match before
     /// the actual sentinel output. The real sentinel is always the last occurrence.
     ///
     /// - Parameters:

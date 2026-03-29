@@ -1,6 +1,6 @@
 //
 //  TestConfig.example.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  TEMPLATE FILE - Copy to TestConfig.local.swift and fill in real values
 //  TestConfig.local.swift is gitignored and will NOT be committed
@@ -13,9 +13,9 @@ import Foundation
 ///
 /// Setup steps:
 ///   1. Generate a test-only ed25519 key pair (no passphrase):
-///        ssh-keygen -t ed25519 -f GeisttyUITests/test_secrets/geistty_test_ed25519 -N "" -C "geistty-test-key"
+///        ssh-keygen -t ed25519 -f iTTYUITests/test_secrets/itty_test_ed25519 -N "" -C "itty-test-key"
 ///   2. Add the public key to your test server's authorized_keys:
-///        cat GeisttyUITests/test_secrets/geistty_test_ed25519.pub >> ~/.ssh/authorized_keys
+///        cat iTTYUITests/test_secrets/itty_test_ed25519.pub >> ~/.ssh/authorized_keys
 ///   3. Copy this file to TestConfig.local.swift and update the values below
 ///   4. Set isConfigured = true
 ///
@@ -34,12 +34,12 @@ enum TestConfig {
     static let sshUsername = "your-username"
     
     /// Path to ed25519 private key for key-based auth
-    /// Place your key in GeisttyUITests/test_secrets/ (gitignored)
+    /// Place your key in iTTYUITests/test_secrets/ (gitignored)
     static let keyFilePath = Bundle(for: BundleToken.self).path(
-        forResource: "geistty_test_ed25519",
+        forResource: "itty_test_ed25519",
         ofType: nil,
         inDirectory: "test_secrets"
-    ) ?? "/path/to/your/geistty_test_ed25519"
+    ) ?? "/path/to/your/itty_test_ed25519"
     
     /// SSH password — prefer key-based auth; set to nil when using a key
     static let sshPassword: String? = nil

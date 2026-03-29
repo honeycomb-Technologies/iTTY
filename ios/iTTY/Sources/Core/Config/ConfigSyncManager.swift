@@ -1,6 +1,6 @@
 //
 //  ConfigSyncManager.swift
-//  Geistty
+//  iTTY
 //
 //  Manages reading/writing Ghostty config file (source of truth)
 //
@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "ConfigSync")
+private let logger = Logger(subsystem: "com.itty", category: "ConfigSync")
 
 /// Manages the Ghostty config file (source of truth)
 @MainActor

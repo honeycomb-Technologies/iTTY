@@ -1,5 +1,5 @@
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - ConfigSyncManager Theme Tests
 
@@ -181,7 +181,7 @@ final class ConfigSyncThemeTests: XCTestCase {
     /// up to just "theme = <name>" with all non-color settings preserved.
     func testFullMigrationFromOldSystem() {
         let oldConfig = """
-        # Geistty Terminal Configuration
+        # iTTY Terminal Configuration
         font-family = "Menlo"
         font-thicken = true
         cursor-style = block
@@ -229,7 +229,7 @@ final class ConfigSyncThemeTests: XCTestCase {
         XCTAssertTrue(result.contains("cursor-style = block"))
         XCTAssertTrue(result.contains("background-opacity = 0.95"))
         XCTAssertTrue(result.contains("scrollback-limit = 50000000"))
-        XCTAssertTrue(result.contains("# Geistty Terminal Configuration"))
+        XCTAssertTrue(result.contains("# iTTY Terminal Configuration"))
         
         // New theme line present
         XCTAssertTrue(result.contains("theme = Dracula+"))

@@ -1,6 +1,6 @@
 //
 //  TmuxPaneUITests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  UI Tests for tmux pane management, splitting, and resizing.
 //  Migrated to use TestConfig for credentials and UITestHelpers
@@ -10,7 +10,7 @@
 import os
 import XCTest
 
-private let logger = Logger(subsystem: "com.geistty.uitests", category: "TmuxPaneUITests")
+private let logger = Logger(subsystem: "com.itty.uitests", category: "TmuxPaneUITests")
 
 /// Tests for tmux multi-pane functionality
 final class TmuxPaneUITests: XCTestCase {

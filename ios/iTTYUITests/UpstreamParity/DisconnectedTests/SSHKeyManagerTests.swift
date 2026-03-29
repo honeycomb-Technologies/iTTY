@@ -1,6 +1,6 @@
 //
 //  SSHKeyManagerTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the SSH Key management views: SSHKeyListView and
 //  SSHKeyGeneratorView. Accessible from ConnectionListView → SSH Keys.

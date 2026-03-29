@@ -1,6 +1,6 @@
 //
 //  Ghostty.SurfaceConfiguration.swift
-//  Geistty
+//  iTTY
 //
 //  Backend types and surface configuration — maps Swift types to Ghostty C API structs.
 //  Extracted from Ghostty.swift — follows upstream Ghostty macOS naming convention.

@@ -1,6 +1,6 @@
 //
 //  CommandPaletteView.swift
-//  Geistty
+//  iTTY
 //
 //  Command palette overlay for searching and executing Ghostty commands.
 //  iOS adaptation of upstream Ghostty macOS CommandPalette.swift.
@@ -17,7 +17,7 @@ import SwiftUI
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "CommandPalette")
+private let logger = Logger(subsystem: "com.itty", category: "CommandPalette")
 
 // MARK: - Command Palette View
 

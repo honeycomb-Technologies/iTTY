@@ -1,6 +1,6 @@
 //
 //  SettingsValueChangeTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for changing values in SettingsView: toggling Show Status Bar,
 //  changing cursor style, adjusting sliders, resetting font size.

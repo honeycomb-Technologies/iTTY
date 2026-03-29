@@ -1,12 +1,12 @@
 //
 //  CommandPaletteTests.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Tests for Ghostty.Command struct and CommandPaletteState.
 //
 
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 final class CommandPaletteTests: XCTestCase {
 

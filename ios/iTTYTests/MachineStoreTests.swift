@@ -24,7 +24,7 @@ final class MachineStoreTests: XCTestCase {
         let machine = try JSONDecoder().decode(Machine.self, from: Data(payload.utf8))
         
         XCTAssertEqual(machine.daemonScheme, "http")
-        XCTAssertEqual(machine.daemonPort, 8080)
+        XCTAssertEqual(machine.daemonPort, 3420)
         XCTAssertFalse(machine.isFavorite)
     }
     

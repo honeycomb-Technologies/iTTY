@@ -102,25 +102,18 @@ struct ContentView: View {
                         ToolbarItem(placement: .primaryAction) {
                             Menu {
                                 Button {
-                                    showConnectionSheet = true
+                                    showMachineList = true
                                 } label: {
-                                    Label("Quick Connect", systemImage: "bolt.fill")
+                                    Label("Find Computers", systemImage: "desktopcomputer")
                                 }
-                                .accessibilityIdentifier("ConnectionMenuQuickConnect")
+                                .accessibilityIdentifier("ConnectionMenuFindComputers")
                                 
                                 Button {
                                     showConnectionList = true
                                 } label: {
-                                    Label("Saved Connections", systemImage: "list.bullet")
+                                    Label("Manual Setup", systemImage: "slider.horizontal.3")
                                 }
-                                .accessibilityIdentifier("ConnectionMenuSavedConnections")
-                                
-                                Button {
-                                    showMachineList = true
-                                } label: {
-                                    Label("Desktop Sessions", systemImage: "desktopcomputer")
-                                }
-                                .accessibilityIdentifier("ConnectionMenuDesktopSessions")
+                                .accessibilityIdentifier("ConnectionMenuManualSetup")
                             } label: {
                                 Image(systemName: "plus.circle")
                             }
@@ -134,18 +127,13 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $showConnectionList) {
                     ConnectionListView { session in
-                        // Session already connected via ConnectionListView
-                        connectedSession = session
-                        appState.sshSession = session
-                        appState.connectionStatus = .connected
+                        handleConnectedSession(session)
                         showConnectionList = false
                     }
                 }
                 .sheet(isPresented: $showMachineList) {
-                    MachineListView { session in
-                        connectedSession = session
-                        appState.sshSession = session
-                        appState.connectionStatus = .connected
+                    TailscaleDiscoveryView { session in
+                        handleConnectedSession(session)
                         showMachineList = false
                     }
                 }
@@ -173,7 +161,7 @@ struct ContentView: View {
             if appState.connectionStatus != .disconnected {
                 disconnectAndReset()
             }
-            showConnectionSheet = true
+            showMachineList = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .showConnectionProfiles)) { _ in
             guard scenePhase == .active else { return }
@@ -218,6 +206,13 @@ struct ContentView: View {
     }
     
     private func connect() {
+        guard RuntimeEnvironment.supportsLiveTerminalSessions else {
+            showConnectionSheet = false
+            appState.clearConnectionParams()
+            appState.connectionStatus = .error(RuntimeEnvironment.simulatorTerminalUnavailableMessage)
+            return
+        }
+        
         // Store connection info in app state so TerminalContainerView can use it
         appState.setConnectionParams(
             host: connectionInfo.host,
@@ -231,6 +226,21 @@ struct ContentView: View {
         // or .error on failure via setupConnection().
         appState.connectionStatus = .connecting
         showConnectionSheet = false
+    }
+    
+    private func handleConnectedSession(_ session: SSHSession) {
+        guard RuntimeEnvironment.supportsLiveTerminalSessions else {
+            session.disconnect()
+            connectedSession = nil
+            appState.sshSession = nil
+            appState.clearConnectionParams()
+            appState.connectionStatus = .error(RuntimeEnvironment.simulatorTerminalUnavailableMessage)
+            return
+        }
+        
+        connectedSession = session
+        appState.sshSession = session
+        appState.connectionStatus = .connected
     }
     
     /// Disconnect the active SSH session and reset to disconnected state (C3 fix).
@@ -280,11 +290,17 @@ struct DisconnectedView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("DisconnectedTitle")
             
+            Text("Use Tailscale first, or fall back to manual setup whenever you need it.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+            
             VStack(spacing: 12) {
                 Button {
-                    showConnectionSheet = true
+                    showMachineList = true
                 } label: {
-                    Label("Quick Connect", systemImage: "bolt.fill")
+                    Label("Find Computers", systemImage: "desktopcomputer")
                         .frame(maxWidth: 200)
                 }
                 .buttonStyle(.borderedProminent)
@@ -293,20 +309,11 @@ struct DisconnectedView: View {
                 Button {
                     showConnectionList = true
                 } label: {
-                    Label("Saved Connections", systemImage: "list.bullet")
+                    Label("Manual Setup", systemImage: "slider.horizontal.3")
                         .frame(maxWidth: 200)
                 }
                 .buttonStyle(.bordered)
                 .accessibilityIdentifier("DisconnectedSavedConnectionsButton")
-                
-                Button {
-                    showMachineList = true
-                } label: {
-                    Label("Desktop Sessions", systemImage: "desktopcomputer")
-                        .frame(maxWidth: 200)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("DisconnectedDesktopSessionsButton")
             }
         }
         .padding()

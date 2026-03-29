@@ -1,6 +1,6 @@
 //
 //  NIOSSHConnection.swift
-//  Geistty
+//  iTTY
 //
 //  SSH connection implementation using SwiftNIO-SSH with Network.framework
 //  Provides native iOS network path monitoring and connection viability tracking
@@ -13,7 +13,7 @@ import NIOTransportServices
 import NIOSSH
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "NIOSSHConnection")
+private let logger = Logger(subsystem: "com.itty", category: "NIOSSHConnection")
 
 // MARK: - Connection Health
 
@@ -349,7 +349,7 @@ class NIOSSHConnection {
                 self?.handlePathUpdate(path)
             }
         }
-        monitor.start(queue: DispatchQueue(label: "com.geistty.pathmonitor"))
+        monitor.start(queue: DispatchQueue(label: "com.itty.pathmonitor"))
         pathMonitor = monitor
     }
     

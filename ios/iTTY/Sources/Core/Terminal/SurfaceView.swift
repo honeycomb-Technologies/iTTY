@@ -1,6 +1,6 @@
 //
 //  Ghostty.swift
-//  Geistty
+//  iTTY
 //
 //  Swift wrappers for the GhosttyKit C API
 //
@@ -17,7 +17,7 @@ import Combine
 /// Ghostty namespace containing all Ghostty-related types
 enum Ghostty {
     /// Logger for Ghostty-related operations
-    static let logger = Logger(subsystem: "com.geistty", category: "Ghostty")
+    static let logger = Logger(subsystem: "com.itty", category: "Ghostty")
     
     // MARK: - Keyboard Shortcut Actions (matches Ghostty macOS keybindings)
     

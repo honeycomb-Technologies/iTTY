@@ -1,6 +1,6 @@
 //
 //  Ghostty.Config.swift
-//  Geistty
+//  iTTY
 //
 //  Configuration wrapper for ghostty_config_t
 //  Extracted from Ghostty.swift — follows upstream Ghostty macOS naming convention
@@ -195,7 +195,7 @@ extension Ghostty {
         /// This is a static template - no dependencies on ThemeManager or UserDefaults
         static func generateDefaultConfig() -> String {
             return """
-            # Geistty Terminal Configuration
+            # iTTY Terminal Configuration
             # This file is the source of truth - edit directly
             # Reload with Cmd+Shift+, or from Settings
             

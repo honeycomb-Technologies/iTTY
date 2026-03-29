@@ -1,6 +1,6 @@
 //
 //  Ghostty.Command.swift
-//  Geistty
+//  iTTY
 //
 //  Swift wrapper for ghostty_command_s — represents a command palette entry.
 //  Ported from upstream Ghostty macOS with iOS-specific unsupported action filtering.
@@ -62,7 +62,7 @@ extension Ghostty {
             "undo",
             "redo",
 
-            // Already handled by iOS system / Geistty directly
+            // Already handled by iOS system / iTTY directly
             "open_config",
         ]
 

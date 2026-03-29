@@ -1,6 +1,6 @@
 //
 //  SSHCommandRunner.swift
-//  Geistty
+//  iTTY
 //
 //  Lightweight utility for running a single SSH exec command on a remote server.
 //  Used by the public key installer to append keys to authorized_keys.
@@ -16,7 +16,7 @@ import NIOTransportServices
 import NIOSSH
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "SSHCommandRunner")
+private let logger = Logger(subsystem: "com.itty", category: "SSHCommandRunner")
 
 /// Result of an SSH exec command
 struct SSHCommandResult: Sendable {

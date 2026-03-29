@@ -1,0 +1,59 @@
+diff --git a/src/build/LibtoolStep.zig b/src/build/LibtoolStep.zig
+index d2b5149..e3f86cd 100644
+--- a/src/build/LibtoolStep.zig
++++ b/src/build/LibtoolStep.zig
+@@ -31,7 +31,53 @@ pub fn create(b: *std.Build, opts: Options) *LibtoolStep {
+     const self = b.allocator.create(LibtoolStep) catch @panic("OOM");
+ 
+     const run_step = RunStep.create(b, b.fmt("libtool {s}", .{opts.name}));
+-    run_step.addArgs(&.{ "libtool", "-static", "-o" });
++    run_step.addArgs(&.{
++        "/bin/bash",
++        "-c",
++        \\set -euo pipefail
++        \\output="$1"
++        \\shift
++        \\
++        \\workdir="$(mktemp -d "${TMPDIR:-/tmp}/ghostty-libtool.XXXXXX")"
++        \\cleanup() {
++        \\  rm -rf "$workdir"
++        \\}
++        \\trap cleanup EXIT
++        \\
++        \\declare -a object_paths=()
++        \\archive_index=0
++        \\
++        \\for source in "$@"; do
++        \\  source_path="$source"
++        \\  if [[ "$source_path" != /* ]]; then
++        \\    source_path="$(pwd)/$source_path"
++        \\  fi
++        \\  if ar -t "$source_path" >/dev/null 2>&1; then
++        \\    archive_dir="$workdir/$archive_index"
++        \\    mkdir -p "$archive_dir"
++        \\    (
++        \\      cd "$archive_dir"
++        \\      ar -x "$source_path"
++        \\      chmod u+rw ./*.o 2>/dev/null || true
++        \\    )
++        \\    while IFS= read -r -d '' object_path; do
++        \\      object_paths+=("$object_path")
++        \\    done < <(find "$archive_dir" -type f -name '*.o' -print0 | sort -z)
++        \\    archive_index=$((archive_index + 1))
++        \\  else
++        \\    object_paths+=("$source_path")
++        \\  fi
++        \\done
++        \\
++        \\if [[ "${#object_paths[@]}" -eq 0 ]]; then
++        \\  echo "libtool step found no object files to combine" >&2
++        \\  exit 1
++        \\fi
++        \\
++        \\libtool -static -o "$output" "${object_paths[@]}"
++        ,
++        "--",
++    });
+     const output = run_step.addOutputFileArg(opts.out_name);
+     for (opts.sources) |source| run_step.addFileArg(source);
+ 

@@ -27,6 +27,8 @@ import (
 	"time"
 
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/api"
+	apnsPkg "github.com/honeycomb-Technologies/iTTY/daemon/internal/apns"
+	"github.com/honeycomb-Technologies/iTTY/daemon/internal/bonjour"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/config"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/shell"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tailscale"
@@ -85,7 +87,18 @@ func runDaemon() error {
 	}
 
 	api.Version = version
-	srv := api.NewServer(tmuxClient, cfg)
+
+	tsClient := tailscale.NewClient()
+	srv := api.NewServer(tmuxClient, cfg, tsClient)
+
+	// Configure APNs push notifications if credentials are available.
+	apnsSender, err := apnsPkg.NewSender(cfg.APNsKeyPath, cfg.APNsKeyID, cfg.APNsTeamID, "com.itty.app")
+	if err != nil {
+		log.Printf("APNs setup failed: %v", err)
+	} else if apnsSender != nil {
+		srv.ConfigureAPNs(apnsSender)
+		log.Printf("APNs push notifications enabled")
+	}
 
 	if cfg.TailscaleServe {
 		result, err := maybeConfigureTailscaleServe(context.Background(), newTailscaleClient(), cfg.ListenAddr)
@@ -99,13 +112,26 @@ func runDaemon() error {
 		}
 	}
 
+	// Advertise daemon via Bonjour for zero-config local network discovery.
+	bonjourAdv, err := bonjour.Start(cfg.ListenAddr)
+	if err != nil {
+		log.Printf("bonjour advertisement skipped: %v", err)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Start WebSocket session watcher for real-time client updates.
+	stopWatcher := srv.StartSessionWatcher(ctx, tmuxClient, 2*time.Second)
 
 	go func() {
 		<-ctx.Done()
 
 		log.Println("shutting down...")
+		stopWatcher()
+		if bonjourAdv != nil {
+			bonjourAdv.Stop()
+		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {

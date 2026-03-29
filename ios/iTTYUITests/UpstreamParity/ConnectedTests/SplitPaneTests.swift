@@ -1,6 +1,6 @@
 //
 //  SplitPaneTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for tmux split pane operations — horizontal/vertical splits,
 //  pane focus navigation, closing panes, and multi-pane layouts.

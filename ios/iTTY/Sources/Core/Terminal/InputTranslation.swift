@@ -1,6 +1,6 @@
 //
 //  GhosttyInput.swift
-//  Geistty
+//  iTTY
 //
 //  Ghostty input types for proper keyboard handling.
 //  Based on macOS Ghostty implementation in Ghostty.Input.swift

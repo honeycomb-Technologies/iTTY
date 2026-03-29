@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+Keyboard.swift
-//  Geistty
+//  iTTY
 //
 //  Keyboard show/hide handling for the terminal view controller.
 //
@@ -9,7 +9,7 @@ import UIKit
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Keyboard Handling
 

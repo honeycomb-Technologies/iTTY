@@ -1,6 +1,6 @@
 //
 //  ConnectionEditorView.swift
-//  Geistty
+//  iTTY
 //
 //  View for creating/editing connection profiles
 //
@@ -8,7 +8,7 @@
 import os
 import SwiftUI
 
-private let logger = Logger(subsystem: "com.geistty", category: "ConnectionEditor")
+private let logger = Logger(subsystem: "com.itty", category: "ConnectionEditor")
 
 struct ConnectionEditorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -1125,7 +1125,7 @@ struct PublicKeyInstallerView: View {
             mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
             echo '\(escapedKey)' >> ~/.ssh/authorized_keys && \
             chmod 600 ~/.ssh/authorized_keys && \
-            echo 'GEISTTY_KEY_INSTALLED'
+            echo 'ITTY_KEY_INSTALLED'
             """
         
         installState = .connecting
@@ -1142,7 +1142,7 @@ struct PublicKeyInstallerView: View {
                 
                 let result = try await runner.run(command: installCommand, password: targetPassword)
                 
-                if result.succeeded || result.stdout.contains("GEISTTY_KEY_INSTALLED") {
+                if result.succeeded || result.stdout.contains("ITTY_KEY_INSTALLED") {
                     installState = .success
                 } else {
                     let errorMsg = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)

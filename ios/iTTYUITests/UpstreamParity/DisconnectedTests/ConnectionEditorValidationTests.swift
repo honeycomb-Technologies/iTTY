@@ -1,6 +1,6 @@
 //
 //  ConnectionEditorValidationTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for ConnectionEditorView form validation: empty fields trigger
 //  ValidationMessage, Save button disabled state, field-specific errors.

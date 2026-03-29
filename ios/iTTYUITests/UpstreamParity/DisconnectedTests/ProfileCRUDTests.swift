@@ -1,6 +1,6 @@
 //
 //  ProfileCRUDTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Full CRUD lifecycle tests: Create a connection profile via the editor,
 //  verify it appears in the connection list, edit it, duplicate it, delete it.

@@ -1,6 +1,6 @@
 import XCTest
 import CryptoKit
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - SSHKeyType Tests
 
@@ -83,7 +83,7 @@ final class SSHKeyPairTests: XCTestCase {
         pubBlob.append(Data(bytes: &pubLen, count: 4))
         pubBlob.append(pubBytes)
         
-        let publicKeyString = "ssh-ed25519 \(pubBlob.base64EncodedString()) test@geistty"
+        let publicKeyString = "ssh-ed25519 \(pubBlob.base64EncodedString()) test@itty"
         
         let keyPair = SSHKeyPair(
             id: UUID(),
@@ -194,7 +194,7 @@ final class SSHKeyErrorTests: XCTestCase {
 final class SSHKeyManagerTests: XCTestCase {
     
     /// Prefix for test key names to avoid collisions with real keys
-    private static let testPrefix = "__test_geistty_"
+    private static let testPrefix = "__test_itty_"
     
     /// Track names of keys created during tests for cleanup
     private var createdKeyNames: [String] = []

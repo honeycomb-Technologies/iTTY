@@ -1,6 +1,6 @@
 //
 //  ConnectionEditorTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the ConnectionEditorView: field presence, validation,
 //  auth method switching, tmux toggle, save/cancel.

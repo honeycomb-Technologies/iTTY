@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+Search.swift
-//  Geistty
+//  iTTY
 //
 //  Search/Find overlay management for the terminal view controller.
 //
@@ -11,7 +11,7 @@ import Combine
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Search / Find
 

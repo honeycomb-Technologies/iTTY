@@ -1,6 +1,6 @@
 //
 //  FontPickerTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the FontPickerView: font rows, selection checkmark,
 //  tapping a different font.

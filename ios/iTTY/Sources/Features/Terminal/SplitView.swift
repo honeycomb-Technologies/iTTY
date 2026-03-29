@@ -1,6 +1,6 @@
 //
 //  TmuxSplitView.swift
-//  Geistty
+//  iTTY
 //
 //  SwiftUI split view for rendering tmux pane layouts.
 //  Ported from Ghostty's SplitView.swift, adapted for iOS/iPadOS.
@@ -9,7 +9,7 @@
 import SwiftUI
 import os
 
-private let logger = os.Logger(subsystem: "com.geistty", category: "TmuxSplitView")
+private let logger = os.Logger(subsystem: "com.itty", category: "TmuxSplitView")
 
 // MARK: - Environment Key
 

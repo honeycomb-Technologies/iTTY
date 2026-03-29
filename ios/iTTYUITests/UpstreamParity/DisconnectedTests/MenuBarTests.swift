@@ -1,6 +1,6 @@
 //
 //  MenuBarTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the iPadOS system menu bar — verifies that menu bar items
 //  defined via SwiftUI `.commands {}` are queryable by XCUITest on iPad.
@@ -54,7 +54,7 @@ final class MenuBarTests: XCTestCase {
         XCTAssertTrue(app.waitForDisconnectedScreen(timeout: 5))
 
         // SwiftUI `.commands {}` defines these menus:
-        // - App menu (Geistty): Preferences
+        // - App menu (iTTY): Preferences
         // - File: New Connection, Quick Connect, Close Connection
         // - Edit: Copy, Paste, Select All, Find submenu
         // - View: Increase/Decrease/Reset Font Size, Command Palette

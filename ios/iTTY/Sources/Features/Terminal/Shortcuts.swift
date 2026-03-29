@@ -1,6 +1,6 @@
 //
 //  RawTerminalUIViewController+Shortcuts.swift
-//  Geistty
+//  iTTY
 //
 //  Ghostty ShortcutDelegate implementation for the terminal view controller.
 //  Routes keyboard shortcuts to TmuxSessionManager for split/tab/window management.
@@ -10,7 +10,7 @@ import UIKit
 import GhosttyKit
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Terminal")
+private let logger = Logger(subsystem: "com.itty", category: "Terminal")
 
 // MARK: - Ghostty Shortcut Delegate
 

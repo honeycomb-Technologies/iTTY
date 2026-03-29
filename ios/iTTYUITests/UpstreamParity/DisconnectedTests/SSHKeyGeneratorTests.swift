@@ -1,6 +1,6 @@
 //
 //  SSHKeyGeneratorTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the SSHKeyGeneratorView: field presence, key type picker,
 //  generate button state, name field interaction.

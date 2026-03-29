@@ -1,6 +1,6 @@
 //
 //  CommandPaletteTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the Command Palette — opening, searching/filtering commands,
 //  selecting a command, and dismissing.

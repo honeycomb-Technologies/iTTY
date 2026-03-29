@@ -1,6 +1,6 @@
 //
 //  TmuxWireDiagnostics.swift
-//  Geistty
+//  iTTY
 //
 //  Shadow parser for tmux control mode wire data. Mirrors what Ghostty's
 //  control.zig does — parses %output lines, unescapes octal, validates
@@ -20,7 +20,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxWireDiag")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxWireDiag")
 
 /// Diagnostic findings from analyzing tmux control mode wire data.
 struct WireDiagnosticEvent: Equatable {

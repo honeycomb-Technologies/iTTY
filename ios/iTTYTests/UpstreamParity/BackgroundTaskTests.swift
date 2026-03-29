@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 import Combine
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - Mock Background Task Provider
 

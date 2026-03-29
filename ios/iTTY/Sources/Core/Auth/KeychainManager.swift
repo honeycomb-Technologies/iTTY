@@ -1,11 +1,11 @@
 //
 //  KeychainManager.swift
-//  Geistty
+//  iTTY
 //
 //  Secure storage for SSH keys and credentials using iOS Keychain.
 //  
 //  Both the main app and File Provider extension share the same keychain-access-groups
-//  entitlement (TEAMID.com.geistty.shared). iOS automatically uses the first entitled
+//  entitlement (TEAMID.com.itty.shared). iOS automatically uses the first entitled
 //  group for new items and searches all entitled groups on queries, so we don't need
 //  to specify kSecAttrAccessGroup explicitly.
 //
@@ -14,7 +14,7 @@ import Foundation
 import Security
 import os.log
 
-private let logger = Logger(subsystem: "com.geistty", category: "Keychain")
+private let logger = Logger(subsystem: "com.itty", category: "Keychain")
 
 /// Errors that can occur during Keychain operations
 enum KeychainError: LocalizedError {
@@ -46,10 +46,10 @@ enum KeychainError: LocalizedError {
 /// Manages secure storage of credentials and SSH keys in the iOS Keychain.
 ///
 /// Both the main app and File Provider extension share the same keychain-access-groups
-/// entitlement (com.geistty.shared). We do NOT specify kSecAttrAccessGroup in queries —
+/// entitlement (com.itty.shared). We do NOT specify kSecAttrAccessGroup in queries —
 /// iOS automatically uses the first group from the entitlements for new items, and searches
 /// all entitled groups for existing items. Explicitly specifying the group would require
-/// the full "TEAMID.com.geistty.shared" value which is build-environment-specific.
+/// the full "TEAMID.com.itty.shared" value which is build-environment-specific.
 class KeychainManager {
     
     /// Shared instance - use this everywhere (main app and extensions)
@@ -59,7 +59,7 @@ class KeychainManager {
     static var sharedForExtension: KeychainManager { shared }
     
     /// Service identifier for our app's keychain items
-    private let service = "com.geistty"
+    private let service = "com.itty"
     
     private init() {}
     
@@ -187,7 +187,7 @@ class KeychainManager {
         
         // Fallback: old kSecClassKey format (pre-migration)
         if status == errSecItemNotFound {
-            let tag = "com.geistty.key.\(name)"
+            let tag = "com.itty.key.\(name)"
             guard let tagData = tag.data(using: .utf8) else {
                 throw KeychainError.dataConversionError
             }
@@ -235,7 +235,7 @@ class KeychainManager {
         let status = SecItemDelete(query as CFDictionary)
         
         // Also delete old kSecClassKey format
-        let tag = "com.geistty.key.\(name)"
+        let tag = "com.itty.key.\(name)"
         guard let tagData = tag.data(using: .utf8) else {
             logger.warning("Failed to encode tag for old-format key deletion: \(name)")
             // If we successfully deleted the new format, that's still fine
@@ -472,8 +472,8 @@ class KeychainManager {
             for item in items {
                 if let tagData = item[kSecAttrApplicationTag as String] as? Data,
                    let tag = String(data: tagData, encoding: .utf8),
-                   tag.hasPrefix("com.geistty.key.") {
-                    keyNames.insert(String(tag.dropFirst("com.geistty.key.".count)))
+                   tag.hasPrefix("com.itty.key.") {
+                    keyNames.insert(String(tag.dropFirst("com.itty.key.".count)))
                 }
             }
         }

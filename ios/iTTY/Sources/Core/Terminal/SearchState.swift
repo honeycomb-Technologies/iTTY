@@ -1,6 +1,6 @@
 //
 //  Ghostty.SearchState.swift
-//  Geistty
+//  iTTY
 //
 //  Search state and error types for Ghostty terminal surfaces.
 //  Extracted from Ghostty.swift — follows upstream Ghostty macOS naming convention.

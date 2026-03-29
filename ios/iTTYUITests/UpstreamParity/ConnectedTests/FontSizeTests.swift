@@ -1,6 +1,6 @@
 //
 //  FontSizeTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for font size adjustment — increase, decrease, reset,
 //  pinch-to-zoom, and rapid changes.

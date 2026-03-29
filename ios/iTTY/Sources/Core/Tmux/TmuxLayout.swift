@@ -1,6 +1,6 @@
 //
 //  TmuxLayout.swift
-//  Geistty
+//  iTTY
 //
 //  tmux layout string parser, ported from Ghostty's layout.zig
 //  Parses tmux layout strings into a tree structure for rendering.

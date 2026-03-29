@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  Geistty
+//  iTTY
 //
 //  App settings and preferences
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "Settings")
+private let logger = Logger(subsystem: "com.itty", category: "Settings")
 
 /// User preferences stored in UserDefaults
 ///

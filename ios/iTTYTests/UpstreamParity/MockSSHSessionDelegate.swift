@@ -1,13 +1,13 @@
 //
 //  MockSSHSessionDelegate.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Mock implementation of SSHSessionDelegate for unit testing.
 //  Records all delegate calls with arguments for verification.
 //
 
 import Foundation
-@testable import Geistty
+@testable import iTTY
 
 /// Mock delegate that records all SSHSession delegate calls.
 ///

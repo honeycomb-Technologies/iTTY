@@ -1,6 +1,6 @@
 //
 //  TmuxMultiPaneView.swift
-//  Geistty
+//  iTTY
 //
 //  SwiftUI view that renders multiple tmux panes using TmuxSplitTreeView.
 //  This view observes the TmuxSessionManager and automatically updates
@@ -11,7 +11,7 @@ import SwiftUI
 import Combine
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxMultiPane")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxMultiPane")
 
 /// A SwiftUI view that renders multiple tmux panes with proper split layout.
 ///

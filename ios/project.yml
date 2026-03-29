@@ -1,0 +1,129 @@
+name: iTTY
+options:
+  bundleIdPrefix: com.itty
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+packages:
+  swift-nio-ssh:
+    url: https://github.com/daiimus/swift-nio-ssh.git
+    branch: add-rsa-support
+  swift-nio-transport-services:
+    url: https://github.com/apple/swift-nio-transport-services.git
+    from: "1.20.0"
+
+targets:
+  iTTY:
+    type: application
+    platform: iOS
+    sources:
+      - path: iTTY/Sources
+    resources:
+      - path: iTTY/Assets.xcassets
+      - path: iTTY/Resources/Fonts
+        buildPhase: resources
+      - path: iTTY/Resources/Themes
+        buildPhase: resources
+    dependencies:
+      - framework: iTTY/Frameworks/GhosttyKit.xcframework
+      - package: swift-nio-ssh
+        product: NIOSSH
+      - package: swift-nio-transport-services
+        product: NIOTransportServices
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.itty.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_FILE: iTTY/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iTTY/iTTY.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks"
+        "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
+        OTHER_LDFLAGS: "$(inherited) -lc++"
+        "OTHER_SWIFT_FLAGS[sdk=iphoneos*]": "-Xcc -fmodule-map-file=$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64/Headers/GhosttyKit.modulemap"
+        "OTHER_SWIFT_FLAGS[sdk=iphonesimulator*]": "-Xcc -fmodule-map-file=$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64-simulator/Headers/GhosttyKit.modulemap"
+        "SWIFT_INCLUDE_PATHS[sdk=iphoneos*]": "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64/Headers"
+        "SWIFT_INCLUDE_PATHS[sdk=iphonesimulator*]": "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64-simulator/Headers"
+
+  iTTYTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: iTTYTests
+    dependencies:
+      - target: iTTY
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.itty.tests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iTTY.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTTY"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks"
+        "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+          - "@loader_path/Frameworks"
+        "HEADER_SEARCH_PATHS[sdk=iphoneos*]":
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64/Headers"
+        "HEADER_SEARCH_PATHS[sdk=iphonesimulator*]":
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64-simulator/Headers"
+        "OTHER_SWIFT_FLAGS[sdk=iphoneos*]": "-Xcc -fmodule-map-file=$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64/Headers/GhosttyKit.modulemap"
+        "OTHER_SWIFT_FLAGS[sdk=iphonesimulator*]": "-Xcc -fmodule-map-file=$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64-simulator/Headers/GhosttyKit.modulemap"
+        "SWIFT_INCLUDE_PATHS[sdk=iphoneos*]":
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64/Headers"
+        "SWIFT_INCLUDE_PATHS[sdk=iphonesimulator*]":
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/iTTY/Frameworks/GhosttyKit.xcframework/ios-arm64-simulator/Headers"
+
+  iTTYUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: iTTYUITests
+    dependencies:
+      - target: iTTY
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.itty.uitests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: iTTY
+        "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
+
+schemes:
+  iTTY:
+    build:
+      targets:
+        iTTY: all
+        iTTYTests: [test]
+        iTTYUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - iTTYTests
+        - iTTYUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

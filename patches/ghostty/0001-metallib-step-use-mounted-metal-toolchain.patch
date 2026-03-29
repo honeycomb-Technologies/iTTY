@@ -1,0 +1,116 @@
+diff --git a/src/build/MetallibStep.zig b/src/build/MetallibStep.zig
+index fcf3055..21ad4c0 100644
+--- a/src/build/MetallibStep.zig
++++ b/src/build/MetallibStep.zig
+@@ -7,6 +7,9 @@ const Step = std.Build.Step;
+ const RunStep = std.Build.Step.Run;
+ const LazyPath = std.Build.LazyPath;
+ 
++const mounted_metal_bin = "/Volumes/MetalToolchainCryptex/Metal.xctoolchain/usr/bin/metal";
++const mounted_metallib_bin = "/Volumes/MetalToolchainCryptex/Metal.xctoolchain/usr/bin/metallib";
++
+ pub const Options = struct {
+     /// The name of the xcframework to create.
+     name: []const u8,
+@@ -21,17 +24,44 @@ pub const Options = struct {
+ step: *Step,
+ output: LazyPath,
+ 
+-pub fn create(b: *std.Build, opts: Options) ?*MetallibStep {
+-    const sdk = switch (opts.target.result.os.tag) {
++fn fileExists(path: []const u8) bool {
++    std.fs.accessAbsolute(path, .{}) catch return false;
++    return true;
++}
++
++fn sdkName(target: std.Build.ResolvedTarget) ?[]const u8 {
++    return switch (target.result.os.tag) {
+         .macos => "macosx",
+-        .ios => switch (opts.target.result.abi) {
+-            // The iOS simulator uses the same SDK for Metal as the device,
+-            // but the minimum version tag causes different behaviors.
+-            .simulator => "iphoneos",
++        .ios => switch (target.result.abi) {
++            .simulator => "iphonesimulator",
+             else => "iphoneos",
+         },
+-        else => return null,
++        else => null,
+     };
++}
++
++fn sdkPath(b: *std.Build, sdk: []const u8) []const u8 {
++    const run = std.process.Child.run(.{
++        .allocator = b.allocator,
++        .argv = &.{ "/usr/bin/xcrun", "--sdk", sdk, "--show-sdk-path" },
++        .max_output_bytes = 4096,
++    }) catch |err| std.debug.panic(
++        "failed to resolve sdk path for {s}: {}",
++        .{ sdk, err },
++    );
++
++    if (run.term == .Exited and run.term.Exited == 0) {
++        return std.mem.trimRight(u8, run.stdout, "\r\n");
++    }
++
++    std.debug.panic(
++        "failed to resolve sdk path for {s}: {s}",
++        .{ sdk, run.stderr },
++    );
++}
++
++pub fn create(b: *std.Build, opts: Options) ?*MetallibStep {
++    const sdk = sdkName(opts.target) orelse return null;
+     const platform_version_arg = switch (opts.target.result.os.tag) {
+         .macos => "-mmacos-version-min",
+         .ios => switch (opts.target.result.abi) {
+@@ -42,6 +72,8 @@ pub fn create(b: *std.Build, opts: Options) ?*MetallibStep {
+     };
+ 
+     const self = b.allocator.create(MetallibStep) catch @panic("OOM");
++    const use_mounted_toolchain = fileExists(mounted_metal_bin) and
++        fileExists(mounted_metallib_bin);
+ 
+     const min_version = if (opts.target.query.os_version_min) |v|
+         b.fmt("{f}", .{v.semver})
+@@ -55,10 +87,20 @@ pub fn create(b: *std.Build, opts: Options) ?*MetallibStep {
+         b,
+         b.fmt("metal {s}", .{opts.name}),
+     );
+-    run_ir.addArgs(&.{ "/usr/bin/xcrun", "-sdk", sdk, "metal", "-o" });
+-    const output_ir = run_ir.addOutputFileArg(b.fmt("{s}.ir", .{opts.name}));
++    const output_ir = blk: {
++        if (use_mounted_toolchain) {
++            run_ir.addArgs(&.{ mounted_metal_bin, "-o" });
++            break :blk run_ir.addOutputFileArg(b.fmt("{s}.ir", .{opts.name}));
++        }
++
++        run_ir.addArgs(&.{ "/usr/bin/xcrun", "-sdk", sdk, "metal", "-o" });
++        break :blk run_ir.addOutputFileArg(b.fmt("{s}.ir", .{opts.name}));
++    };
+     run_ir.addArgs(&.{"-c"});
+     for (opts.sources) |source| run_ir.addFileArg(source);
++    if (use_mounted_toolchain) {
++        run_ir.addArgs(&.{ "-isysroot", sdkPath(b, sdk) });
++    }
+     if (platform_version_arg) |arg| {
+         run_ir.addArgs(&.{b.fmt(
+             "{s}={s}",
+@@ -70,8 +112,15 @@ pub fn create(b: *std.Build, opts: Options) ?*MetallibStep {
+         b,
+         b.fmt("metallib {s}", .{opts.name}),
+     );
+-    run_lib.addArgs(&.{ "/usr/bin/xcrun", "-sdk", sdk, "metallib", "-o" });
+-    const output_lib = run_lib.addOutputFileArg(b.fmt("{s}.metallib", .{opts.name}));
++    const output_lib = blk: {
++        if (use_mounted_toolchain) {
++            run_lib.addArgs(&.{ mounted_metallib_bin, "-o" });
++            break :blk run_lib.addOutputFileArg(b.fmt("{s}.metallib", .{opts.name}));
++        }
++
++        run_lib.addArgs(&.{ "/usr/bin/xcrun", "-sdk", sdk, "metallib", "-o" });
++        break :blk run_lib.addOutputFileArg(b.fmt("{s}.metallib", .{opts.name}));
++    };
+     run_lib.addFileArg(output_ir);
+     run_lib.step.dependOn(&run_ir.step);
+ 

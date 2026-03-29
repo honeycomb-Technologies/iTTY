@@ -2,7 +2,7 @@ import UIKit
 import GhosttyKit
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "SelectionOverlay")
+private let logger = Logger(subsystem: "com.itty", category: "SelectionOverlay")
 
 // MARK: - Selection Handle View
 

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Geistty
+@testable import iTTY
 
 // MARK: - KeychainError Tests
 
@@ -48,7 +48,7 @@ final class KeychainManagerPasswordTests: XCTestCase {
     private let keychain = KeychainManager.shared
     
     /// Unique host/username prefix for this test run to avoid collisions
-    private let testHost = "__test_geistty_kc_host"
+    private let testHost = "__test_itty_kc_host"
     private var testUsers: [String] = []
     
     override func setUp() {

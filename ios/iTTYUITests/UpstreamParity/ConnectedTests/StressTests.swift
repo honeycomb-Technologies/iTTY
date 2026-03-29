@@ -1,6 +1,6 @@
 //
 //  StressTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Stress tests and edge cases — rapid input, repeated operations,
 //  large output, maximum splits, and combined interactions.

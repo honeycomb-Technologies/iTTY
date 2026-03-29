@@ -1,6 +1,6 @@
 //
 //  SSHSession.swift
-//  Geistty
+//  iTTY
 //
 //  High-level SSH session wrapper for SwiftUI usage
 //  Uses SwiftNIO-SSH with Network.framework for native iOS network monitoring
@@ -11,7 +11,7 @@ import NIOSSH
 import UIKit
 import os
 
-private let logger = Logger(subsystem: "com.geistty", category: "SSHSession")
+private let logger = Logger(subsystem: "com.itty", category: "SSHSession")
 
 /// Delegate protocol for SSHSession events.
 /// @MainActor because SSHSession is @MainActor and calls delegate methods synchronously
@@ -254,7 +254,7 @@ class SSHSession: ObservableObject, Identifiable {
         isDetachingForBackground || isReconnecting
     }
     
-    /// Session name discovery state for geistty-N auto-naming.
+    /// Session name discovery state for itty-N auto-naming.
     /// When no custom tmux session name is set, we query `tmux list-sessions`
     /// before entering control mode. This state tracks that pre-control-mode query.
     private enum SessionDiscoveryState {
@@ -825,8 +825,8 @@ class SSHSession: ObservableObject, Identifiable {
     /// Auto-attach to or create a tmux session.
     ///
     /// If the user set a custom `tmuxSessionName`, uses it directly.
-    /// Otherwise, queries existing sessions to find an unattached `geistty-N`
-    /// session to reattach to, or creates the next `geistty-<N+1>`.
+    /// Otherwise, queries existing sessions to find an unattached `itty-N`
+    /// session to reattach to, or creates the next `itty-<N+1>`.
     ///
     /// The query happens as a raw shell command before entering control mode:
     /// 1. Send `tmux list-sessions ...` to the shell
@@ -851,7 +851,7 @@ class SSHSession: ObservableObject, Identifiable {
         }
         
         // Begin session discovery: query existing sessions
-        logger.info("Starting geistty-N session discovery")
+        logger.info("Starting itty-N session discovery")
         let (query, marker) = TmuxSessionNameResolver.makeQueryCommand()
         sessionDiscoveryState = .querying(buffer: "", endMarker: marker)
         if let data = query.data(using: .utf8) {
@@ -1413,7 +1413,7 @@ class SSHSession: ObservableObject, Identifiable {
         }
         
         backgroundTaskID = backgroundTaskProvider.beginBackgroundTask(
-            withName: "GeisttyTmuxDetach"
+            withName: "iTTYTmuxDetach"
         ) { [weak self] in
             // Expiration handler — iOS is about to force-suspend us.
             // End the task to avoid being killed.

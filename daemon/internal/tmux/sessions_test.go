@@ -106,6 +106,58 @@ esac
 	}
 }
 
+func TestValidateSessionName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		sessionName string
+		wantErr     error
+	}{
+		{name: "valid", sessionName: "itty-1"},
+		{name: "empty", sessionName: "", wantErr: ErrInvalidSessionName},
+		{name: "leading whitespace", sessionName: " itty-1", wantErr: ErrInvalidSessionName},
+		{name: "slash", sessionName: "itty/1", wantErr: ErrInvalidSessionName},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateSessionName(tt.sessionName)
+			if tt.wantErr == nil {
+				if err != nil {
+					t.Fatalf("validateSessionName() error = %v, want nil", err)
+				}
+				return
+			}
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("validateSessionName() error = %v, want %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNewSessionMapsDuplicateSession(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient()
+	client.TmuxPath = writeFakeTmux(t, `#!/bin/sh
+if [ "$1" = "new-session" ] && [ "$2" = "-d" ] && [ "$3" = "-s" ] && [ "$4" = "itty-1" ]; then
+  echo "duplicate session: itty-1" >&2
+  exit 1
+fi
+echo "unexpected args: $@" >&2
+exit 1
+`)
+
+	_, err := client.NewSession(context.Background(), "itty-1")
+	if !errors.Is(err, ErrSessionExists) {
+		t.Fatalf("NewSession() error = %v, want ErrSessionExists", err)
+	}
+}
+
 func writeFakeTmux(t *testing.T, script string) string {
 	t.Helper()
 

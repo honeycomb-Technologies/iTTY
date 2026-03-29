@@ -1,6 +1,6 @@
 //
 //  MockTmuxSurface.swift
-//  GeisttyTests
+//  iTTYTests
 //
 //  Mock implementation of TmuxSurfaceProtocol for unit testing.
 //  Provides configurable return values and call tracking for all
@@ -8,7 +8,7 @@
 //
 
 import Foundation
-@testable import Geistty
+@testable import iTTY
 
 /// Mock surface for testing tmux lifecycle code.
 ///

@@ -1,6 +1,6 @@
 //
 //  TmuxSessionManager.swift
-//  Geistty
+//  iTTY
 //
 //  Manages tmux session/window/pane state and coordinates with Ghostty surfaces.
 //  This is the central hub for tmux integration.
@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 import os.log
-private let logger = Logger(subsystem: "com.geistty", category: "TmuxSession")
+private let logger = Logger(subsystem: "com.itty", category: "TmuxSession")
 
 // MARK: - Connection State
 
@@ -31,7 +31,7 @@ enum TmuxConnectionState: Equatable {
     case connectionLost(reason: String?)
 }
 
-/// Manages the mapping between tmux server state and Geistty UI
+/// Manages the mapping between tmux server state and iTTY UI
 @MainActor
 class TmuxSessionManager: ObservableObject {
     
@@ -296,7 +296,7 @@ class TmuxSessionManager: ObservableObject {
         logger.info("🔌 Control mode exited, cleaning up state. Reason: \(reason ?? "unknown"), isDetach: \(isDetach)")
         
         // Update connection state — distinguish voluntary detach from crash/exit.
-        // "detached" means the user (or Geistty) sent detach-client and tmux
+        // "detached" means the user (or iTTY) sent detach-client and tmux
         // cleanly ended control mode. The session is still alive on the server
         // and can be reattached.
         isConnected = false
@@ -1098,7 +1098,7 @@ class TmuxSessionManager: ObservableObject {
             // detachTmuxPane() separately is redundant and dangerous during
             // teardown — it chases binding.source pointers that may be stale
             // if the source surface is mid-teardown → SIGSEGV.
-            // See: Geistty-2026-02-17-211930.ips, Geistty-2026-02-17-211214.ips
+            // See: iTTY-2026-02-17-211930.ips, iTTY-2026-02-17-211214.ips
             #if DEBUG
             teardownOrderForTesting.append((paneId: paneId, isObserver: surface.isMultiPaneObserver))
             #endif
@@ -1943,7 +1943,7 @@ class TmuxSessionManager: ObservableObject {
     /// Query critical tmux options on connect.
     ///
     /// Called from `viewerBecameReady()` after the viewer's startup command queue
-    /// drains. These options influence how Geistty behaves:
+    /// drains. These options influence how iTTY behaves:
     /// - `mouse`: Whether to handle mouse events in tmux panes
     /// - `escape-time`: Delay before ESC is sent (affects key handling)
     /// - `window-size`: How tmux sizes windows for multiple clients

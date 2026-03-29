@@ -1,6 +1,6 @@
 //
 //  SearchTests.swift
-//  GeisttyUITests
+//  iTTYUITests
 //
 //  Tests for the terminal search overlay — opening, typing queries,
 //  navigating matches, and dismissing the search bar.
