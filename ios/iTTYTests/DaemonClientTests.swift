@@ -56,11 +56,11 @@ final class DaemonClientTests: XCTestCase {
     }
     
     func testSetAutoWrapEncodesBooleanBody() async throws {
-        var capturedBody: Data?
+        let bodyBox = BodyBox()
         let client = DaemonClient(baseURL: URL(string: "http://daemon.test")!) { request in
             XCTAssertEqual(request.httpMethod, "PUT")
             XCTAssertEqual(request.url?.path, "/config/auto")
-            capturedBody = request.httpBody
+            bodyBox.set(request.httpBody)
             
             let body = """
             {
@@ -79,8 +79,8 @@ final class DaemonClientTests: XCTestCase {
         let config = try await client.setAutoWrap(enabled: true)
         
         XCTAssertTrue(config.autoWrap)
-        XCTAssertNotNil(capturedBody)
-        let json = try XCTUnwrap(try JSONSerialization.jsonObject(with: XCTUnwrap(capturedBody)) as? [String: Bool])
+        let capturedBody = try XCTUnwrap(bodyBox.get())
+        let json = try XCTUnwrap(try JSONSerialization.jsonObject(with: capturedBody) as? [String: Bool])
         XCTAssertEqual(json["enabled"], true)
     }
     
@@ -100,7 +100,7 @@ final class DaemonClientTests: XCTestCase {
 
     func testSessionDetailPercentEncodesPathSeparatorInName() async throws {
         let client = DaemonClient(baseURL: URL(string: "http://daemon.test")!) { request in
-            XCTAssertEqual(request.url?.path, "/sessions/work%2Fmain")
+            XCTAssertEqual(request.url?.absoluteString, "http://daemon.test/sessions/work%2Fmain")
             let body = """
             {
               "name": "work/main",
@@ -134,5 +134,22 @@ final class DaemonClientTests: XCTestCase {
     
     private static func response(for request: URLRequest, statusCode: Int) -> HTTPURLResponse {
         HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
+    }
+}
+
+private final class BodyBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Data?
+
+    func set(_ newValue: Data?) {
+        lock.lock()
+        value = newValue
+        lock.unlock()
+    }
+
+    func get() -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
     }
 }

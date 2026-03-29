@@ -199,9 +199,10 @@ final class SSHKeyManagerTests: XCTestCase {
     /// Track names of keys created during tests for cleanup
     private var createdKeyNames: [String] = []
     
-    override func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         createdKeyNames = []
+        try KeychainTestSupport.requireWritableKeychain()
     }
     
     override func tearDown() {

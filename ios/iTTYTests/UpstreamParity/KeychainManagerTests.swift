@@ -51,9 +51,10 @@ final class KeychainManagerPasswordTests: XCTestCase {
     private let testHost = "__test_itty_kc_host"
     private var testUsers: [String] = []
     
-    override func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         testUsers = []
+        try KeychainTestSupport.requireWritableKeychain()
     }
     
     override func tearDown() {
@@ -158,9 +159,10 @@ final class KeychainManagerSSHKeyTests: XCTestCase {
     private let keychain = KeychainManager.shared
     private var createdKeyNames: [String] = []
     
-    override func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         createdKeyNames = []
+        try KeychainTestSupport.requireWritableKeychain()
     }
     
     override func tearDown() {
