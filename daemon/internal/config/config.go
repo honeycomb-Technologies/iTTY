@@ -23,9 +23,10 @@ type Config struct {
 	TailscaleServe bool `toml:"tailscale_serve" json:"tailscaleServe"` // Auto-configure tailscale serve (default: true)
 
 	// Notification settings
-	APNsKeyPath string `toml:"apns_key_path" json:"apnsKeyPath"` // Path to APNs .p8 key file
-	APNsKeyID   string `toml:"apns_key_id" json:"apnsKeyID"`     // APNs key ID
-	APNsTeamID  string `toml:"apns_team_id" json:"apnsTeamID"`   // Apple Developer Team ID
+	APNsKeyPath    string `toml:"apns_key_path" json:"apnsKeyPath"`       // Path to APNs .p8 key file
+	APNsKeyID      string `toml:"apns_key_id" json:"apnsKeyID"`           // APNs key ID
+	APNsTeamID     string `toml:"apns_team_id" json:"apnsTeamID"`         // Apple Developer Team ID
+	APNsProduction bool   `toml:"apns_production" json:"apnsProduction"` // Use production APNs gateway (default: false)
 }
 
 // DefaultConfig returns configuration with sensible defaults.

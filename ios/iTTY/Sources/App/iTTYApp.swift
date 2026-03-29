@@ -1,12 +1,40 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 import GhosttyKit
+
+// MARK: - App Delegate for APNs
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task { @MainActor in
+            NotificationManager.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
+        }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Task { @MainActor in
+            NotificationManager.shared.didFailToRegisterForRemoteNotifications(error: error)
+        }
+    }
+}
 
 @main
 struct iTTYApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     // Ghostty backend is shared across all windows
     @StateObject private var ghosttyApp = Ghostty.App()
-    
+
     init() {
+        // Wire notification delegate
+        UNUserNotificationCenter.current().delegate = NotificationManager.shared
         // CRITICAL: Set the window background color to match the theme
         // This prevents the gray system background from showing through
         // during any view transitions or layout changes

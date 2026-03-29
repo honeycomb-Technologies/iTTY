@@ -26,7 +26,10 @@ func (s *Server) handleRegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.deviceStore.Register(req.Token)
+	if err := s.deviceStore.Register(req.Token); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "registered"})
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/coder/websocket"
 
+	apnsPkg "github.com/honeycomb-Technologies/iTTY/daemon/internal/apns"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/tmux"
 )
 
@@ -81,6 +82,16 @@ func (s *Server) StartSessionWatcher(ctx context.Context, tmuxClient *tmux.Clien
 				continue
 			}
 			s.wsHub.broadcast(data)
+
+			// Push notifications for session lifecycle events.
+			switch event.Type {
+			case tmux.EventSessionCreated:
+				apnsPkg.NotifyAll(watchCtx, s.apnsSender, s.deviceStore,
+					"New Session", event.Session.Name+" created")
+			case tmux.EventSessionClosed:
+				apnsPkg.NotifyAll(watchCtx, s.apnsSender, s.deviceStore,
+					"Session Ended", event.Session.Name+" closed")
+			}
 		}
 	}()
 

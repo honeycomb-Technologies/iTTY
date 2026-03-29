@@ -5,6 +5,7 @@ package apns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -14,6 +15,13 @@ import (
 	"github.com/sideshow/apns2/token"
 )
 
+// minTokenLength is the minimum acceptable APNs device token length.
+// Real tokens are 64 hex characters; this guards against obviously invalid values.
+const minTokenLength = 32
+
+// ErrInvalidToken indicates a device token that is too short or empty.
+var ErrInvalidToken = errors.New("invalid device token")
+
 // Sender manages APNs connections and sends push notifications.
 type Sender struct {
 	client *apns2.Client
@@ -22,7 +30,8 @@ type Sender struct {
 
 // NewSender creates a Sender from an APNs .p8 key file.
 // Returns nil if any required config is empty (graceful no-op).
-func NewSender(keyPath, keyID, teamID, bundleID string) (*Sender, error) {
+// Set production to true for App Store / TestFlight builds.
+func NewSender(keyPath, keyID, teamID, bundleID string, production bool) (*Sender, error) {
 	if keyPath == "" || keyID == "" || teamID == "" {
 		return nil, nil
 	}
@@ -38,17 +47,17 @@ func NewSender(keyPath, keyID, teamID, bundleID string) (*Sender, error) {
 		TeamID:  teamID,
 	}
 
-	client := apns2.NewTokenClient(tok).Development()
+	client := apns2.NewTokenClient(tok)
+	if production {
+		client = client.Production()
+	} else {
+		client = client.Development()
+	}
 
 	return &Sender{
 		client: client,
 		topic:  bundleID,
 	}, nil
-}
-
-// UseProduction switches the sender to the production APNs endpoint.
-func (s *Sender) UseProduction() {
-	s.client = s.client.Production()
 }
 
 // Send pushes a notification to the given device token.
@@ -77,6 +86,22 @@ func (s *Sender) Send(ctx context.Context, deviceToken string, title, body strin
 	return nil
 }
 
+// ValidateToken checks that a device token meets minimum length requirements.
+func ValidateToken(token string) error {
+	if len(token) < minTokenLength {
+		return fmt.Errorf("%w: must be at least %d characters, got %d", ErrInvalidToken, minTokenLength, len(token))
+	}
+	return nil
+}
+
+// redactToken returns a safely truncated token for logging.
+func redactToken(token string) string {
+	if len(token) < 12 {
+		return "<short>"
+	}
+	return token[:8] + "…" + token[len(token)-4:]
+}
+
 // DeviceStore is a simple in-memory store for APNs device tokens.
 // Tokens are lost on daemon restart — acceptable for v1.
 type DeviceStore struct {
@@ -91,12 +116,18 @@ func NewDeviceStore() *DeviceStore {
 	}
 }
 
-// Register adds a device token.
-func (d *DeviceStore) Register(token string) {
+// Register validates and adds a device token. Returns an error if the token
+// is too short.
+func (d *DeviceStore) Register(token string) error {
+	if err := ValidateToken(token); err != nil {
+		return err
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.tokens[token] = struct{}{}
-	log.Printf("apns: registered device %s…%s", token[:8], token[len(token)-4:])
+	log.Printf("apns: registered device %s", redactToken(token))
+	return nil
 }
 
 // Unregister removes a device token.
@@ -120,13 +151,13 @@ func (d *DeviceStore) All() []string {
 // NotifyAll sends a push notification to all registered devices.
 // Errors are logged but not returned — best-effort delivery.
 func NotifyAll(ctx context.Context, sender *Sender, store *DeviceStore, title, body string) {
-	if sender == nil {
+	if sender == nil || store == nil {
 		return
 	}
 
 	for _, token := range store.All() {
 		if err := sender.Send(ctx, token, title, body); err != nil {
-			log.Printf("apns: push to %s…%s failed: %v", token[:8], token[len(token)-4:], err)
+			log.Printf("apns: push to %s failed: %v", redactToken(token), err)
 		}
 	}
 }

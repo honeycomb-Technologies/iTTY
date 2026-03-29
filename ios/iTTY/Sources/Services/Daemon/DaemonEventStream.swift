@@ -32,6 +32,7 @@ final class DaemonEventStream: ObservableObject {
     private let machine: Machine
     private var webSocketTask: URLSessionWebSocketTask?
     private var reconnectTask: Task<Void, Never>?
+    private var intentionalDisconnect = false
     private let session: URLSession
 
     init(machine: Machine, session: URLSession = .shared) {
@@ -46,13 +47,14 @@ final class DaemonEventStream: ObservableObject {
 
     /// Start the WebSocket connection.
     func connect() {
-        guard state == .disconnected || state != .connecting else { return }
+        guard state == .disconnected else { return }
 
         guard let url = webSocketURL() else {
             state = .failed("Invalid daemon address")
             return
         }
 
+        intentionalDisconnect = false
         state = .connecting
         logger.info("Connecting to WebSocket at \(url.absoluteString)")
 
@@ -66,8 +68,9 @@ final class DaemonEventStream: ObservableObject {
         listenForMessages()
     }
 
-    /// Disconnect the WebSocket.
+    /// Disconnect the WebSocket. Will not auto-reconnect.
     func disconnect() {
+        intentionalDisconnect = true
         reconnectTask?.cancel()
         reconnectTask = nil
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
@@ -78,7 +81,7 @@ final class DaemonEventStream: ObservableObject {
     // MARK: - Private
 
     private func webSocketURL() -> URL? {
-        guard var components = URLComponents() as URLComponents? else { return nil }
+        var components = URLComponents()
         components.scheme = machine.daemonScheme == "https" ? "wss" : "ws"
         components.host = machine.daemonHost
         components.port = machine.daemonPort
@@ -99,7 +102,9 @@ final class DaemonEventStream: ObservableObject {
                 case .failure(let error):
                     logger.error("WebSocket error: \(error.localizedDescription)")
                     self.state = .failed(error.localizedDescription)
-                    self.scheduleReconnect()
+                    if !self.intentionalDisconnect {
+                        self.scheduleReconnect()
+                    }
                 }
             }
         }
@@ -137,12 +142,16 @@ final class DaemonEventStream: ObservableObject {
     }
 
     private func scheduleReconnect() {
+        guard !intentionalDisconnect else { return }
+
         reconnectTask?.cancel()
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                self?.connect()
+                guard let self, !self.intentionalDisconnect else { return }
+                self.state = .disconnected
+                self.connect()
             }
         }
     }

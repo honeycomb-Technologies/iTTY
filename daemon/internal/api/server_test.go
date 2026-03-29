@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/honeycomb-Technologies/iTTY/daemon/internal/apns"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/config"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/platform"
 	"github.com/honeycomb-Technologies/iTTY/daemon/internal/shell"
@@ -525,3 +526,115 @@ func TestGetPeersEmptyReturnsArray(t *testing.T) {
 		t.Fatalf("body = %q, want %q", body, "[]")
 	}
 }
+
+func TestRegisterDeviceSuccess(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+	server.ConfigureAPNs(nil)
+
+	token := strings.Repeat("a", 64)
+	req := httptest.NewRequest(http.MethodPost, "/devices", strings.NewReader(`{"token":"`+token+`"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+}
+
+func TestRegisterDeviceEmptyToken(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+	server.ConfigureAPNs(nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/devices", strings.NewReader(`{"token":""}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestRegisterDeviceShortToken(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+	server.ConfigureAPNs(nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/devices", strings.NewReader(`{"token":"tooshort"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestRegisterDeviceStoreNil(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+	// Don't call ConfigureAPNs — deviceStore is nil
+
+	req := httptest.NewRequest(http.MethodPost, "/devices", strings.NewReader(`{"token":"abc"}`))
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
+func TestUnregisterDeviceSuccess(t *testing.T) {
+	server := NewServerWithDeps(
+		fakeTmux{},
+		&config.Config{ListenAddr: ":3420", TmuxPath: "tmux"},
+		nil,
+		fakeWindows{},
+		&fakeShell{info: &shell.ShellInfo{}},
+		&fakeConfigStore{},
+	)
+	server.ConfigureAPNs(nil)
+
+	// Register first
+	token := strings.Repeat("x", 64)
+	_ = server.deviceStore.Register(token)
+
+	req := httptest.NewRequest(http.MethodDelete, "/devices/"+token, nil)
+	rec := httptest.NewRecorder()
+	server.mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	if len(server.deviceStore.All()) != 0 {
+		t.Fatal("device store should be empty after unregister")
+	}
+}
+
+// Ensure the unused apns import is used.
+var _ = apns.NewDeviceStore

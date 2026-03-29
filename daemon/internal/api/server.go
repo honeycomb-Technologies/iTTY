@@ -126,9 +126,12 @@ func (s *Server) registerRoutes() {
 }
 
 // ConfigureAPNs sets up push notification support. Safe to call with nil sender.
+// The device store is always created so that device registration works even
+// before APNs credentials are configured — tokens are stored and ready to
+// use once a sender is provided.
 func (s *Server) ConfigureAPNs(sender *apns.Sender) {
 	s.apnsSender = sender
-	if sender != nil {
+	if s.deviceStore == nil {
 		s.deviceStore = apns.NewDeviceStore()
 	}
 }

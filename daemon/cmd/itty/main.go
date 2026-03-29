@@ -92,7 +92,7 @@ func runDaemon() error {
 	srv := api.NewServer(tmuxClient, cfg, tsClient)
 
 	// Configure APNs push notifications if credentials are available.
-	apnsSender, err := apnsPkg.NewSender(cfg.APNsKeyPath, cfg.APNsKeyID, cfg.APNsTeamID, "com.itty.app")
+	apnsSender, err := apnsPkg.NewSender(cfg.APNsKeyPath, cfg.APNsKeyID, cfg.APNsTeamID, "com.itty.app", cfg.APNsProduction)
 	if err != nil {
 		log.Printf("APNs setup failed: %v", err)
 	} else if apnsSender != nil {
