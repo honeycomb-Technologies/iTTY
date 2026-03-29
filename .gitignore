@@ -25,6 +25,10 @@ Thumbs.db
 # Upstream reference (not part of build)
 _upstream/
 
+# Build artifacts
+.deriveddata-sim/
+.codex-artifacts/
+
 # Environment
 .env
 .env.local
