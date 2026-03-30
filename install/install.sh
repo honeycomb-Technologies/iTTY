@@ -271,10 +271,10 @@ configure_tailscale() {
     fi
 
     info "configuring Tailscale Serve..."
-    if tailscale serve --bg 8080 &>/dev/null; then
-        ok "Tailscale Serve configured for local port 8080"
+    if tailscale serve --bg 3420 &>/dev/null; then
+        ok "Tailscale Serve configured for local port 3420"
     else
-        warn "tailscale serve failed — you can configure it later with: tailscale serve --bg 8080"
+        warn "tailscale serve failed — you can configure it later with: tailscale serve --bg 3420"
     fi
 }
 
