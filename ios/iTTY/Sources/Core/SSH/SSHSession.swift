@@ -431,14 +431,12 @@ class SSHSession: ObservableObject, Identifiable {
         conn.delegate = self
         self.daemonConnection = conn
 
-        // Set up tmux session manager before connecting
-        setupTmuxSessionManager()
-
         conn.connect()
 
-        // The daemon already spawns `tmux -CC attach`, so we just wait
-        // for Ghostty to detect control mode from the incoming bytes.
-        // No need to call attachToTmuxNow() — the daemon does it.
+        // tmux session manager and notification observers are set up later
+        // by TerminalContainerView when the Ghostty surface is ready.
+        // The daemon already runs `tmux -CC attach`, so control mode bytes
+        // will start flowing as soon as the WebSocket connects.
     }
 
     /// Build an SSHAuthMethod from an SSHCredential.
@@ -1785,15 +1783,37 @@ extension SSHSession: DaemonTerminalConnectionDelegate {
     func daemonTerminalDidConnect() {
         logger.info("Daemon terminal connected")
         self.state = .connected
+
+        // Set up tmux session manager now that we're connected.
+        // This mirrors what finalizeConnection() does for SSH.
+        if useTmux {
+            setupTmuxSessionManager()
+            observeTmuxNotifications()
+        }
+
         self.delegate?.sshSessionDidConnect(self)
+
+        // Flush any early-received data that arrived before the delegate was set
+        for data in earlyReceiveBuffer {
+            delegate?.sshSession(self, didReceiveData: data)
+        }
+        earlyReceiveBuffer.removeAll()
     }
 
     func daemonTerminalDidReceiveData(_ data: Data) {
-        handleReceivedData(data)
+        // Buffer data if delegate isn't set yet (terminal view not ready)
+        guard delegate != nil else {
+            earlyReceiveBuffer.append(data)
+            return
+        }
+
+        // In daemon mode, skip session discovery — the daemon already
+        // handles tmux -CC attach. Just forward raw bytes to Ghostty.
+        delegate?.sshSession(self, didReceiveData: data)
     }
 
     func daemonTerminalDidDisconnect(error: Error?) {
-        logger.info("Daemon terminal disconnected")
+        logger.info("Daemon terminal disconnected: \(error?.localizedDescription ?? "clean")")
         self.state = .disconnected
         self.delegate?.sshSession(self, didDisconnectWithError: error)
     }
