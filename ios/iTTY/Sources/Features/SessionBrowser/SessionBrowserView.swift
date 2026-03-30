@@ -1,3 +1,8 @@
+// iTTY — Session Browser
+//
+// Shows a clean list of terminal sessions on a machine.
+// Tap a session → enter terminal. Tap + → new terminal.
+
 import SwiftUI
 
 @MainActor
@@ -19,28 +24,28 @@ final class SessionBrowserViewModel: ObservableObject {
         case loaded
         case failed(String)
     }
-    
+
     @Published private(set) var health: DaemonHealth?
     @Published private(set) var sessions: [SavedSession] = []
     @Published private(set) var loadState: LoadState = .idle
     @Published private(set) var lastUpdatedAt: Date?
     @Published var selectedSessionDetail: SavedSessionDetail?
     @Published var selectedSessionPreview: String?
-    
+
     let machine: Machine
-    
+
     private let client: DaemonClient?
     private let clientError: String?
-    
+
     init(machine: Machine, client: DaemonClient? = nil) {
         self.machine = machine
-        
+
         if let client {
             self.client = client
             self.clientError = nil
             return
         }
-        
+
         do {
             self.client = try DaemonClient(machine: machine)
             self.clientError = nil
@@ -49,42 +54,42 @@ final class SessionBrowserViewModel: ObservableObject {
             self.clientError = error.localizedDescription
         }
     }
-    
+
     var isLoading: Bool {
         loadState == .loading
     }
-    
+
     var errorMessage: String? {
         guard case .failed(let message) = loadState else {
             return nil
         }
         return message
     }
-    
+
     func clearError() {
         guard case .failed = loadState else {
             return
         }
         loadState = sessions.isEmpty && health == nil ? .idle : .loaded
     }
-    
+
     func reportError(_ message: String) {
         loadState = .failed(message)
     }
-    
+
     func load() async {
         guard let client else {
             loadState = .failed(clientError ?? "Missing daemon client")
             return
         }
-        
+
         loadState = .loading
-        
+
         do {
             async let daemonHealth = client.health()
             async let daemonSessions = client.listSessions()
             let (health, sessions) = try await (daemonHealth, daemonSessions)
-            
+
             self.health = health
             self.sessions = sessions.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             self.lastUpdatedAt = Date()
@@ -94,13 +99,13 @@ final class SessionBrowserViewModel: ObservableObject {
             self.loadState = .failed(error.localizedDescription)
         }
     }
-    
+
     func inspect(_ session: SavedSession) async {
         guard let client else {
             loadState = .failed(clientError ?? "Missing daemon client")
             return
         }
-        
+
         do {
             async let detail = client.sessionDetail(name: session.name)
             async let content = client.sessionContent(name: session.name)
@@ -152,66 +157,29 @@ final class SessionBrowserViewModel: ObservableObject {
 
 struct SessionBrowserView: View {
     @StateObject private var viewModel: SessionBrowserViewModel
-    @State private var attachingSessionID: String?
-    
+    @State private var connectingSessionID: String?
+    @State private var showingSSHSetup = false
+    @State private var errorMessage: String?
+
     private let onConnect: ((SSHSession) -> Void)?
-    
+
     init(machine: Machine, onConnect: ((SSHSession) -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: SessionBrowserViewModel(machine: machine))
         self.onConnect = onConnect
     }
-    
+
     var body: some View {
-        List {
-            Section("Machine") {
-                LabeledContent("Name", value: viewModel.machine.displayName)
-                LabeledContent("Daemon", value: viewModel.machine.daemonAuthority)
-                if let linkedProfile = MachineStore.shared.linkedProfile(for: viewModel.machine) {
-                    LabeledContent("Attach Profile", value: linkedProfile.displayString)
-                }
-            }
-            
-            if let health = viewModel.health {
-                Section("Daemon") {
-                    LabeledContent("Status", value: health.status)
-                    LabeledContent("Version", value: health.version)
-                    LabeledContent("Platform", value: health.platform)
-                    LabeledContent("tmux", value: health.tmuxSummary)
-                }
-            }
-            
-            Section("Sessions") {
-                if viewModel.sessions.isEmpty && !viewModel.isLoading {
-                    ContentUnavailableView(
-                        "No Sessions",
-                        systemImage: "terminal",
-                        description: Text("The daemon is reachable, but it did not report any tmux sessions. Tap + to create one.")
-                    )
+        ZStack {
+            iTTYColors.background.ignoresSafeArea()
+
+            Group {
+                if viewModel.isLoading && viewModel.sessions.isEmpty {
+                    ProgressView("Loading sessions…")
+                        .foregroundStyle(iTTYColors.textSecondary)
+                } else if viewModel.sessions.isEmpty {
+                    emptyState
                 } else {
-                    ForEach(viewModel.sessions) { session in
-                        Button {
-                            Task {
-                                await viewModel.inspect(session)
-                            }
-                        } label: {
-                            SessionRowView(session: session)
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if canAttach {
-                                Button("Attach") {
-                                    attach(to: session)
-                                }
-                                .tint(.blue)
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if let lastUpdatedAt = viewModel.lastUpdatedAt {
-                Section {
-                    LabeledContent("Last Refresh", value: lastUpdatedAt.formatted(date: .abbreviated, time: .shortened))
+                    sessionList
                 }
             }
         }
@@ -219,18 +187,12 @@ struct SessionBrowserView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    Task { await createAndAttachSession() }
+                    Task { await createAndConnect() }
                 } label: {
                     Image(systemName: "plus")
+                        .foregroundStyle(iTTYColors.accent)
                 }
                 .accessibilityIdentifier("NewSessionButton")
-            }
-        }
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView("Loading daemon state…")
-            } else if attachingSessionID != nil {
-                ProgressView("Opening session…")
             }
         }
         .task {
@@ -241,131 +203,200 @@ struct SessionBrowserView: View {
         .refreshable {
             await viewModel.load()
         }
-        .sheet(item: $viewModel.selectedSessionDetail) { detail in
-            SessionInspectorView(detail: detail, preview: viewModel.selectedSessionPreview)
-        }
-        .alert(
-            "Daemon Error",
-            isPresented: Binding(
-                get: { viewModel.errorMessage != nil },
-                set: { _ in
-                    viewModel.clearError()
+        .overlay {
+            if connectingSessionID != nil {
+                ZStack {
+                    Color.black.opacity(0.4).ignoresSafeArea()
+                    ProgressView("Connecting…")
+                        .padding(24)
+                        .background(iTTYColors.surfaceElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .foregroundStyle(iTTYColors.textPrimary)
                 }
-            )
-        ) {
+            }
+        }
+        .alert("Connection Error", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(viewModel.errorMessage ?? "Unknown daemon error")
+            Text(errorMessage ?? "")
         }
-    }
-    
-    private func createAndAttachSession() async {
-        do {
-            let session = try await viewModel.createSession()
-            attach(to: session)
-        } catch {
-            viewModel.reportError(error.localizedDescription)
+        .sheet(isPresented: $showingSSHSetup) {
+            NavigationStack {
+                ConnectionEditorView(
+                    profile: linkedProfile != nil ? linkedProfileOrNew() : nil,
+                    onSave: { savedProfile in
+                        if linkedProfile == nil {
+                            ConnectionProfileManager.shared.addProfile(savedProfile)
+                        } else {
+                            ConnectionProfileManager.shared.updateProfile(savedProfile)
+                        }
+                        var machine = viewModel.machine
+                        machine.linkedProfileID = savedProfile.id
+                        MachineStore.shared.update(machine)
+                        showingSSHSetup = false
+                    }
+                )
+            }
         }
     }
 
-    private var canAttach: Bool {
-        MachineStore.shared.linkedProfile(for: viewModel.machine) != nil && onConnect != nil
+    // MARK: - Views
+
+    private var sessionList: some View {
+        ScrollView {
+            VStack(spacing: 2) {
+                ForEach(viewModel.sessions) { session in
+                    Button {
+                        connectToSession(session)
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "terminal")
+                                .font(.title3)
+                                .foregroundStyle(iTTYColors.accent)
+                                .frame(width: 32)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(session.name)
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(iTTYColors.textPrimary)
+
+                                Text(sessionSubtitle(session))
+                                    .font(.caption)
+                                    .foregroundStyle(iTTYColors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(iTTYColors.textSecondary.opacity(0.5))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(iTTYColors.surface)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(20)
+        }
     }
-    
-    private func attach(to session: SavedSession) {
-        guard let onConnect,
-              let linkedProfile = MachineStore.shared.linkedProfile(for: viewModel.machine) else {
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "terminal")
+                .font(.system(size: 44))
+                .foregroundStyle(iTTYColors.textSecondary)
+
+            Text("No terminals open")
+                .font(.headline)
+                .foregroundStyle(iTTYColors.textPrimary)
+
+            Text("Tap + to open a new terminal session.")
+                .font(.subheadline)
+                .foregroundStyle(iTTYColors.textSecondary)
+
+            Button {
+                Task { await createAndConnect() }
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("New Terminal")
+                }
+                .font(.body.weight(.medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(iTTYColors.accent)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(40)
+    }
+
+    // MARK: - Helpers
+
+    private func sessionSubtitle(_ session: SavedSession) -> String {
+        var parts: [String] = []
+        if let cmd = session.lastPaneCommand, !cmd.isEmpty {
+            parts.append(cmd)
+        }
+        parts.append("\(session.windows) window\(session.windows == 1 ? "" : "s")")
+        return parts.joined(separator: " · ")
+    }
+
+    private var linkedProfile: ConnectionProfile? {
+        MachineStore.shared.linkedProfile(for: viewModel.machine)
+    }
+
+    private func linkedProfileOrNew() -> ConnectionProfile {
+        if let existing = linkedProfile { return existing }
+        return ConnectionProfile(
+            name: viewModel.machine.displayName,
+            host: viewModel.machine.daemonHost,
+            port: 22,
+            username: "",
+            authMethod: .password,
+            useTmux: true
+        )
+    }
+
+    // MARK: - Actions
+
+    private func connectToSession(_ session: SavedSession) {
+        guard let profile = linkedProfile else {
+            // No SSH profile — need to set one up first
+            showingSSHSetup = true
             return
         }
-        
-        attachingSessionID = session.id
-        
+
+        guard !profile.username.isEmpty else {
+            // Profile exists but username is empty — need setup
+            showingSSHSetup = true
+            return
+        }
+
+        connectingSessionID = session.id
+
         Task {
             do {
-                let credential = try await CredentialManager.shared.getCredentials(for: linkedProfile)
-                var attachProfile = linkedProfile
+                let credential = try await CredentialManager.shared.getCredentials(for: profile)
+                var attachProfile = profile
                 attachProfile.useTmux = true
                 attachProfile.tmuxSessionName = session.name
-                
+
                 let sshSession = SSHSession()
                 try await sshSession.connect(profile: attachProfile, credential: credential)
-                
+
                 await MainActor.run {
-                    attachingSessionID = nil
-                    onConnect(sshSession)
+                    connectingSessionID = nil
+                    onConnect?(sshSession)
                 }
             } catch {
                 await MainActor.run {
-                    attachingSessionID = nil
-                    viewModel.reportError(error.localizedDescription)
+                    connectingSessionID = nil
+                    errorMessage = error.localizedDescription
                 }
             }
         }
     }
-}
 
-private struct SessionInspectorView: View {
-    let detail: SavedSessionDetail
-    let preview: String?
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Session") {
-                    LabeledContent("Name", value: detail.name)
-                    LabeledContent("Status", value: detail.attached ? "Attached" : "Detached")
-                    LabeledContent("Windows", value: "\(detail.windows)")
-                    if let lastPaneCommand = detail.lastPaneCommand, !lastPaneCommand.isEmpty {
-                        LabeledContent("Last Command", value: lastPaneCommand)
-                    }
-                    if let lastPanePath = detail.lastPanePath, !lastPanePath.isEmpty {
-                        LabeledContent("Last Path", value: lastPanePath)
-                    }
-                }
-                
-                Section("Windows") {
-                    ForEach(detail.windowList) { window in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("\(window.index): \(window.name)")
-                                    .font(.headline)
-                                if window.active {
-                                    Spacer()
-                                    Text("Active")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                            
-                            ForEach(window.panes, id: \.id) { pane in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("%\(pane.id) • \(pane.command)")
-                                        .font(.subheadline)
-                                    Text(pane.path)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(pane.width)×\(pane.height)")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
-                    }
-                }
-                
-                if let preview, !preview.isEmpty {
-                    Section("Active Pane Preview") {
-                        ScrollView(.horizontal) {
-                            Text(preview)
-                                .font(.system(.footnote, design: .monospaced))
-                                .textSelection(.enabled)
-                        }
-                    }
-                }
-            }
-            .navigationTitle(detail.name)
-            .navigationBarTitleDisplayMode(.inline)
+    private func createAndConnect() async {
+        // Check SSH profile first
+        guard let profile = linkedProfile, !profile.username.isEmpty else {
+            showingSSHSetup = true
+            return
+        }
+
+        do {
+            let session = try await viewModel.createSession()
+            connectToSession(session)
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }
