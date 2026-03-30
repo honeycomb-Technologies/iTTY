@@ -348,29 +348,15 @@ struct SessionBrowserView: View {
     // MARK: - Actions
 
     private func connectToSession(_ session: SavedSession) {
-        guard let profile = linkedProfile else {
-            // No SSH profile — need to set one up first
-            showingSSHSetup = true
-            return
-        }
-
-        guard !profile.username.isEmpty else {
-            // Profile exists but username is empty — need setup
-            showingSSHSetup = true
-            return
-        }
-
         connectingSessionID = session.id
 
         Task {
             do {
-                let credential = try await CredentialManager.shared.getCredentials(for: profile)
-                var attachProfile = profile
-                attachProfile.useTmux = true
-                attachProfile.tmuxSessionName = session.name
-
                 let sshSession = SSHSession()
-                try await sshSession.connect(profile: attachProfile, credential: credential)
+                try await sshSession.connectViaDaemon(
+                    machine: viewModel.machine,
+                    sessionName: session.name
+                )
 
                 await MainActor.run {
                     connectingSessionID = nil
@@ -386,12 +372,6 @@ struct SessionBrowserView: View {
     }
 
     private func createAndConnect() async {
-        // Check SSH profile first
-        guard let profile = linkedProfile, !profile.username.isEmpty else {
-            showingSSHSetup = true
-            return
-        }
-
         do {
             let session = try await viewModel.createSession()
             connectToSession(session)

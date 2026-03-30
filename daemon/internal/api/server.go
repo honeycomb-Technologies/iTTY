@@ -63,6 +63,7 @@ func (defaultConfigStore) Save(cfg *config.Config) error {
 // Server is the iTTY daemon HTTP server.
 type Server struct {
 	tmux        tmuxService
+	tmuxClient  *tmux.Client
 	tailscale   tailscalePeers
 	config      *config.Config
 	windows     platform.WindowDiscoverer
@@ -76,15 +77,17 @@ type Server struct {
 }
 
 // NewServer creates a new API server with the default dependencies.
-func NewServer(tmuxClient tmuxService, cfg *config.Config, ts tailscalePeers) *Server {
-	return NewServerWithDeps(
-		tmuxClient,
+func NewServer(tmuxSvc tmuxService, tmuxCli *tmux.Client, cfg *config.Config, ts tailscalePeers) *Server {
+	s := NewServerWithDeps(
+		tmuxSvc,
 		cfg,
 		ts,
 		platform.NewWindowDiscoverer(),
 		defaultShellManager{},
 		defaultConfigStore{},
 	)
+	s.tmuxClient = tmuxCli
+	return s
 }
 
 // NewServerWithDeps creates a new API server with explicit dependencies.
@@ -121,6 +124,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /windows", s.handleGetWindows)
 	s.mux.HandleFunc("GET /peers", s.handleGetPeers)
 	s.mux.HandleFunc("GET /ws", s.handleWebSocket)
+	s.mux.HandleFunc("GET /ws/terminal", s.handleTerminalWebSocket)
 	s.mux.HandleFunc("POST /devices", s.handleRegisterDevice)
 	s.mux.HandleFunc("DELETE /devices/{token}", s.handleUnregisterDevice)
 }

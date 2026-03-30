@@ -89,7 +89,7 @@ func runDaemon() error {
 	api.Version = version
 
 	tsClient := tailscale.NewClient()
-	srv := api.NewServer(tmuxClient, cfg, tsClient)
+	srv := api.NewServer(tmuxClient, tmuxClient, cfg, tsClient)
 
 	// Configure APNs push notifications if credentials are available.
 	apnsSender, err := apnsPkg.NewSender(cfg.APNsKeyPath, cfg.APNsKeyID, cfg.APNsTeamID, "com.itty.app", cfg.APNsProduction)

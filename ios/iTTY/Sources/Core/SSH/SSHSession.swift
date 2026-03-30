@@ -115,8 +115,10 @@ class SSHSession: ObservableObject, Identifiable {
     /// Buffer for data received before delegate is set (pre-connected session flow)
     private var earlyReceiveBuffer: [Data] = []
     
-    // Connection
+    // Connection (SSH or daemon WebSocket — one is active at a time)
     private var connection: NIOSSHConnection?
+    private var daemonConnection: DaemonTerminalConnection?
+    private var isDaemonMode: Bool { daemonConnection != nil }
     
     // Connection parameters (stored after connect)
     private(set) var host: String = ""
@@ -415,6 +417,30 @@ class SSHSession: ObservableObject, Identifiable {
         finalizeConnection()
     }
     
+    /// Connect via daemon WebSocket — no SSH credentials needed.
+    /// The daemon spawns `tmux -CC attach` in a PTY and proxies bytes.
+    func connectViaDaemon(machine: Machine, sessionName: String) async throws {
+        self.host = machine.daemonHost
+        self.port = machine.daemonPort
+        self.username = "daemon"
+        self.useTmux = true
+        self.tmuxMode = .controlMode
+        self.tmuxSessionName = sessionName
+
+        let conn = DaemonTerminalConnection(machine: machine, sessionName: sessionName)
+        conn.delegate = self
+        self.daemonConnection = conn
+
+        // Set up tmux session manager before connecting
+        setupTmuxSessionManager()
+
+        conn.connect()
+
+        // The daemon already spawns `tmux -CC attach`, so we just wait
+        // for Ghostty to detect control mode from the incoming bytes.
+        // No need to call attachToTmuxNow() — the daemon does it.
+    }
+
     /// Build an SSHAuthMethod from an SSHCredential.
     /// Key parsing is delegated to SSHKeyParser (Sources/Auth/SSHKeyParser.swift).
     /// Secure Enclave keys arrive pre-built as NIOSSHPrivateKey and bypass parsing.
@@ -1016,7 +1042,7 @@ class SSHSession: ObservableObject, Identifiable {
     ///   - command: The data to write (may be tmux-wrapped command)
     ///   - originalData: The original user input (for queueing on failure)
     private func performWrite(_ command: Data, originalData: Data) {
-        guard connection != nil else {
+        guard connection != nil || daemonConnection != nil else {
             // Skip queueing for control commands (empty originalData sentinel)
             guard !originalData.isEmpty else {
                 logger.warning("⚠️ Control command dropped — no connection")
@@ -1033,6 +1059,12 @@ class SSHSession: ObservableObject, Identifiable {
     
     /// Execute a single write to the SSH connection (called serially by consumer task).
     private func executeWrite(_ command: Data, originalData: Data) async {
+        // Daemon mode: write directly to WebSocket, no async throws needed
+        if let daemonConn = await MainActor.run(body: { self.daemonConnection }) {
+            await MainActor.run { daemonConn.write(command) }
+            return
+        }
+
         guard let connection = connection else {
             // Skip queueing for control commands (empty originalData sentinel)
             guard !originalData.isEmpty else { return }
@@ -1042,7 +1074,7 @@ class SSHSession: ObservableObject, Identifiable {
             }
             return
         }
-        
+
         do {
             try await connection.writeAsync(command)
             // Success! If we were stale, NIOSSHConnection will mark us healthy
@@ -1744,6 +1776,26 @@ extension SSHSession: NIOSSHConnectionDelegate {
             logger.info("Connection healthy, flushing \(self.pendingInputQueue.count) queued inputs")
             self.flushPendingInput()
         }
+    }
+}
+
+// MARK: - DaemonTerminalConnectionDelegate
+
+extension SSHSession: DaemonTerminalConnectionDelegate {
+    func daemonTerminalDidConnect() {
+        logger.info("Daemon terminal connected")
+        self.state = .connected
+        self.delegate?.sshSessionDidConnect(self)
+    }
+
+    func daemonTerminalDidReceiveData(_ data: Data) {
+        handleReceivedData(data)
+    }
+
+    func daemonTerminalDidDisconnect(error: Error?) {
+        logger.info("Daemon terminal disconnected")
+        self.state = .disconnected
+        self.delegate?.sshSession(self, didDisconnectWithError: error)
     }
 }
 
