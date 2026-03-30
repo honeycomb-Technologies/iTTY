@@ -65,76 +65,38 @@ struct ContentView: View {
                 TerminalContainerView()
                     .background(themeBackground)
             } else {
-                // Non-connected states use NavigationStack with welcome/error UI
-                NavigationStack {
-                    Group {
-                        switch appState.connectionStatus {
-                        case .disconnected:
-                            DisconnectedView(
-                                showConnectionSheet: $showConnectionSheet,
-                                showConnectionList: $showConnectionList,
-                                showMachineList: $showMachineList,
-                                backgroundColor: themeBackground
-                            )
-                        case .connecting, .connected:
-                            // Both handled by outer `if` — required for exhaustiveness
-                            EmptyView()
-                        case .error(let message):
+                // Non-connected states: server list is the home screen
+                Group {
+                    switch appState.connectionStatus {
+                    case .disconnected:
+                        NavigationStack {
+                            ServerListView { session in
+                                handleConnectedSession(session)
+                            }
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button {
+                                        showSettings = true
+                                    } label: {
+                                        Image(systemName: "gearshape")
+                                            .foregroundStyle(iTTYColors.textSecondary)
+                                    }
+                                    .accessibilityIdentifier("SettingsButton")
+                                }
+                            }
+                            .toolbarBackground(iTTYColors.background, for: .navigationBar)
+                        }
+                    case .connecting, .connected:
+                        EmptyView()
+                    case .error(let message):
+                        NavigationStack {
                             ErrorView(
                                 message: message,
                                 showConnectionSheet: $showConnectionSheet,
-                                backgroundColor: themeBackground,
+                                backgroundColor: iTTYColors.background,
                                 onReconnect: reconnect
                             )
                         }
-                    }
-                    .navigationTitle("iTTY")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
-                            .accessibilityIdentifier("SettingsButton")
-                        }
-                        
-                        ToolbarItem(placement: .primaryAction) {
-                            Menu {
-                                Button {
-                                    showMachineList = true
-                                } label: {
-                                    Label("Find Computers", systemImage: "desktopcomputer")
-                                }
-                                .accessibilityIdentifier("ConnectionMenuFindComputers")
-                                
-                                Button {
-                                    showConnectionList = true
-                                } label: {
-                                    Label("Manual Setup", systemImage: "slider.horizontal.3")
-                                }
-                                .accessibilityIdentifier("ConnectionMenuManualSetup")
-                            } label: {
-                                Image(systemName: "plus.circle")
-                            }
-                            .accessibilityIdentifier("ConnectionMenu")
-                        }
-                    }
-                }
-                .background(themeBackground)
-                .sheet(isPresented: $showConnectionSheet) {
-                    ConnectionSheet(connectionInfo: $connectionInfo, onConnect: connect)
-                }
-                .sheet(isPresented: $showConnectionList) {
-                    ConnectionListView { session in
-                        handleConnectedSession(session)
-                        showConnectionList = false
-                    }
-                }
-                .sheet(isPresented: $showMachineList) {
-                    TailscaleDiscoveryView { session in
-                        handleConnectedSession(session)
-                        showMachineList = false
                     }
                 }
             }

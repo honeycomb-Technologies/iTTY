@@ -197,50 +197,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 
-                // Appearance
-                Section("Appearance") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Background Opacity")
-                            Spacer()
-                            Text("\(Int(settings.backgroundOpacity * 100))%")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                        
-                        Slider(
-                            value: $settings.backgroundOpacity,
-                            in: 0.5...1.0,
-                            step: 0.05
-                        )
-                        .accessibilityIdentifier("BackgroundOpacitySlider")
-                        .accessibilityLabel("Background opacity")
-                        .accessibilityValue("\(Int(settings.backgroundOpacity * 100)) percent")
-                    }
-                    .padding(.vertical, 4)
-                    
-                    Text("When less than 100%, apps behind the terminal will be visible. Use Cmd+U to toggle.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                // Ghostty Configuration
-                Section {
-                    NavigationLink {
-                        ConfigEditorView()
-                    } label: {
-                        HStack {
-                            Image(systemName: "doc.text")
-                                .foregroundStyle(.blue)
-                            Text("Edit Config File")
-                        }
-                    }
-                    .accessibilityIdentifier("ConfigEditorLink")
-                } header: {
-                    Text("Terminal Configuration")
-                } footer: {
-                    Text("Advanced: Edit the Ghostty config file directly. Changes apply on next connection.")
-                }
+                // (Background opacity and config editor removed for simplicity)
                 
                 // About
                 Section("About") {
