@@ -96,7 +96,14 @@ Phase 2 is in progress.
 
 - verify Metal rendering and tmux pane ownership end-to-end on device (requires SSH credentials at first connect)
 - decide which upstream tests stay as parity tests and which become iTTY-specific tests
-- UI/UX polish sweep (visual design, onboarding, settings — Codex handoff target)
+
+### TestFlight Setup (blocked)
+
+- App Store Connect app record created as "iTTY Terminal"
+- Distribution certificate created (Apple Distribution: JACOB JEEFERY BURGESS)
+- APNs push key created (Key ID: 6C2XFL4333)
+- **Blocker**: swift-crypto BoringSSL headers fail in Release/archive mode (relative path issue in CCryptoBoringSSL internal.h). Debug builds work. Needs swift-crypto version pin or Xcode workaround.
+- Once archive works: export IPA, upload to App Store Connect, enable TestFlight internal testing
 
 ### Completed: Session Lifecycle
 
@@ -135,9 +142,43 @@ Phase 2 is in progress.
 
 ## Phase 3
 
-Phase 3 is polish and resilience:
+Phase 3 is polish and resilience.
 
-- WebSocket or equivalent real-time updates
-- notifications and reconnect flows
-- performance work, memory profiling, and operational hardening
-- installer and platform-specific packaging quality
+### Phase 3 Status
+
+Phase 3 is complete. All findings from Codex audit have been fixed.
+
+### Implemented
+
+- WebSocket real-time streaming: daemon `GET /ws` endpoint with tmux session watcher broadcasting events every 2 seconds, iOS `DaemonEventStream` client using `URLSessionWebSocketTask` with auto-reconnect
+- APNs push notifications: daemon `POST /devices` and `DELETE /devices/{token}` for token registration, `apns2` sender wired into session watcher for `session.created`/`session.closed` events
+- Connection health indicator: `ConnectionHealthIndicator` SwiftUI view surfacing `ConnectionHealth` state (healthy/stale/dead)
+- Bonjour zero-config discovery: daemon advertises `_itty._tcp`, iOS auto-discovers on local network
+- Tailscale peer discovery: daemon `GET /peers` returns tailnet devices, iOS probes for daemons
+
+### Phase 3 Codex Audit (completed)
+
+All 5 findings fixed:
+- P1: APNs sender panic on short device tokens → added `ValidateToken()` and `redactToken()`
+- P1: NotificationManager not wired → added `UIApplicationDelegateAdaptor` and `UNUserNotificationCenter.delegate`
+- P1: Push delivery never triggered → wired `NotifyAll` into WebSocket session event loop
+- P2: DaemonEventStream duplicate sockets → fixed connect guard, added `intentionalDisconnect` flag
+- P2: APNs sandbox-only → added `production` parameter to `NewSender`, `APNsProduction` config field
+
+### Not Yet Implemented
+
+- Performance profiling and memory hardening
+- Certificate pinning for Tailscale Serve HTTPS
+- Config file watcher (detect changes without restart)
+- Structured logging (replace log.Printf with slog)
+
+## Phase 4
+
+Phase 4 is UI/UX — visual design to the owner's vision:
+
+- App appearance, typography, colors, layout
+- Onboarding flow
+- Settings screen design
+- App icon and launch screen
+- Quick-connect flow (tap machine → straight to terminal for single-session machines)
+- App Store screenshots and metadata
