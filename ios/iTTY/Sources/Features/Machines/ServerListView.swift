@@ -8,6 +8,7 @@ import SwiftUI
 struct ServerListView: View {
     @StateObject private var discoveryService: TailscaleDiscoveryService
     @State private var showingManualAdd = false
+    @State private var selectedMachine: Machine?
 
     let onConnect: (SSHSession) -> Void
 
@@ -59,6 +60,9 @@ struct ServerListView: View {
             ManualAddSheet { machine in
                 MachineStore.shared.add(machine)
             }
+        }
+        .navigationDestination(item: $selectedMachine) { machine in
+            SessionBrowserView(machine: machine, onConnect: onConnect)
         }
     }
 
@@ -155,28 +159,7 @@ struct ServerListView: View {
     // MARK: - Actions
 
     private func quickConnect(machine: Machine) {
-        guard let linkedProfile = MachineStore.shared.linkedProfile(for: machine) else {
-            // No SSH profile linked — need to set one up first
-            // For now, open the session browser which handles this
-            return
-        }
-
-        Task {
-            do {
-                let credential = try await CredentialManager.shared.getCredentials(for: linkedProfile)
-                var attachProfile = linkedProfile
-                attachProfile.useTmux = true
-
-                let sshSession = SSHSession()
-                try await sshSession.connect(profile: attachProfile, credential: credential)
-
-                await MainActor.run {
-                    onConnect(sshSession)
-                }
-            } catch {
-                // Connection failed — could show an alert
-            }
-        }
+        selectedMachine = machine
     }
 }
 
